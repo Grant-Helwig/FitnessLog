@@ -19,6 +19,7 @@ const String tableWorkoutType = 'WorkoutType';
 const String columnType = 'type';
 const String columnWeightRequired = 'weightRequired';
 
+//class object for saving workout routines
 class WorkoutRoutine {
   int id = -1;
   late String routine;
@@ -58,7 +59,7 @@ class WorkoutRoutine {
 }
 
 
-
+//class object for saving workout types
 class WorkoutType {
   int id = -1;
   late String type;
@@ -86,7 +87,7 @@ class WorkoutType {
 }
 // data model class
 
-// singleton class to manage the database
+// singleton class to manage the database for all objects
 class DatabaseHelper {
   // This is the actual database filename that is saved in the docs directory.
   static const _databaseName = "MyDatabase.db";
@@ -122,11 +123,13 @@ class DatabaseHelper {
         onConfigure: _onConfigure,
         onCreate: _onCreate);
   }
+
+  //this needs to be enabled for foreign keys to work
   _onConfigure(Database db) async{
     await db.execute("PRAGMA foreign_keys = ON");
   }
 
-  // SQL string to create the database
+  // SQL string to create the database, make sure type is first
   Future _onCreate(Database db, int version) async {
     await db.execute("PRAGMA foreign_keys = ON");
     await db.execute('''
@@ -152,8 +155,7 @@ class DatabaseHelper {
 
   }
 
-  // Database helper methods:
-
+  // Database helper methods
   Future<int> insertWorkout(WorkoutRoutine workoutRoutine) async {
     Database? db = await database;
     int id = await db!.insert(tableWorkouts, workoutRoutine.toMap());
@@ -248,68 +250,3 @@ class DatabaseHelper {
         where: '$columnId = ?', whereArgs: [workout.id]);
   }
 }
-
-// _save(String routine, DateTime date, int sets, int reps, double weight) async {
-//   WorkoutRoutine workout = WorkoutRoutine();
-//   workout.routine = routine;
-//   workout.date = date.toString();
-//   workout.sets = sets;
-//   workout.reps = reps;
-//   workout.weight = weight;
-//
-//   DatabaseHelper helper = DatabaseHelper.instance;
-//
-//   int id = await helper.insert(workout);
-//   workout.id = id;
-//
-//   log('inserted row: $id');
-// }
-//
-// _delete(int _id) async {
-//   DatabaseHelper helper = DatabaseHelper.instance;
-//
-//   int id = await helper.deleteWorkout(_id);
-//
-//   log('deleted row: $id');
-// }
-//
-// _read() async {
-//   DatabaseHelper helper = DatabaseHelper.instance;
-//   int rowId = 1;
-//   WorkoutRoutine? workout = await helper.queryWorkout(rowId);
-//   if (workout == null) {
-//     log('read row $rowId: empty');
-//     return null;
-//   } else {
-//     log('read row $rowId: ${workout.routine}');
-//     return workout;
-//   }
-// }
-//
-// Future<List<WorkoutRoutine>?> _readAll() async {
-//   DatabaseHelper helper = DatabaseHelper.instance;
-//   int rowId = 1;
-//   List<WorkoutRoutine>? workouts = await helper.queryAllWorkouts();
-//   if (workouts == null) {
-//     log('read row $rowId: empty');
-//     return null;
-//   } else {
-//     log('read row $rowId: $workouts');
-//     workouts.sort((a, b) {
-//       return b.date.compareTo(a.date);
-//     });
-//     return workouts;
-//   }
-// }
-//
-// List<WorkoutRoutine>? _getAll() {
-//   Future<List<WorkoutRoutine>?> workoutsFuture = _readAll();
-//   List<WorkoutRoutine>? workouts;
-//   workoutsFuture.then((value) {
-//     if (value != null) value.forEach((item) => workouts!.add(item));
-//   });
-//   log(workouts!.length.toString());
-//   return workouts == null ? [] : workouts;
-// }
-//
-//
