@@ -11,13 +11,14 @@ const String tableWorkouts = 'Workouts';
 const String columnRoutine = 'routine';
 const String columnDate = 'date';
 const String columnWeight = 'weight';
+const String columnTimer = 'timer';
 const String columnSets = 'sets';
 const String columnReps = 'reps';
 const String columnTypeId = 'typeId';
 //type columns
 const String tableWorkoutType = 'WorkoutType';
 const String columnType = 'type';
-const String columnWeightRequired = 'weightRequired';
+const String columnWorkoutEnum = 'workoutEnum';
 
 //class object for saving workout routines
 class WorkoutRoutine {
@@ -25,6 +26,7 @@ class WorkoutRoutine {
   late String routine;
   late String date;
   late double weight;
+  late double timer;
   late int sets;
   late int reps;
   late int typeId;
@@ -36,6 +38,7 @@ class WorkoutRoutine {
     routine = map[columnRoutine];
     date = map[columnDate];
     weight = map[columnWeight];
+    timer = map[columnTimer];
     sets = map[columnSets];
     reps = map[columnReps];
     typeId = map[columnTypeId];
@@ -47,6 +50,7 @@ class WorkoutRoutine {
       columnRoutine: routine,
       columnDate: date,
       columnWeight: weight,
+      columnTimer: timer,
       columnSets: sets,
       columnReps: reps,
       columnTypeId: typeId
@@ -63,21 +67,21 @@ class WorkoutRoutine {
 class WorkoutType {
   int id = -1;
   late String type;
-  late int weightRequired;
+  late int workoutEnum;
 
   WorkoutType();
 
   WorkoutType.fromMap(Map<dynamic, dynamic> map) {
     id = map[columnId];
     type = map[columnType];
-    weightRequired = map[columnWeightRequired];
+    workoutEnum = map[columnWorkoutEnum];
   }
 
   // convenience method to create a Map from this Word object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       columnType: type,
-      columnWeightRequired: weightRequired
+      columnWorkoutEnum: workoutEnum
     };
     if (id != -1) {
       map[columnId] = id;
@@ -85,6 +89,24 @@ class WorkoutType {
     return map;
   }
 }
+
+enum WorkoutCategories {
+  weight,
+  timer,
+  both
+}
+
+String CategoryString(WorkoutCategories category){
+  switch (category) {
+    case WorkoutCategories.weight:
+      return "Weight";
+    case WorkoutCategories.timer:
+      return "Timer";
+    case WorkoutCategories.both:
+      return "Weight & Timer";
+  }
+}
+
 // data model class
 
 // singleton class to manage the database for all objects
@@ -136,7 +158,7 @@ class DatabaseHelper {
               CREATE TABLE $tableWorkoutType (
                 $columnId INTEGER PRIMARY KEY,
                 $columnType TEXT NOT NULL,
-                $columnWeightRequired INTEGER NOT NULL
+                $columnWorkoutEnum INTEGER NOT NULL
               )
               ''');
 
@@ -146,6 +168,7 @@ class DatabaseHelper {
                 $columnRoutine TEXT NOT NULL,
                 $columnDate TEXT NOT NULL,
                 $columnWeight DOUBLE NOT NULL,
+                $columnTimer DOUBLE NOT NULL,
                 $columnSets INTEGER NOT NULL,
                 $columnReps INTEGER NOT NULL,
                 $columnTypeId INTEGER NOT NULL,
@@ -176,6 +199,7 @@ class DatabaseHelper {
           columnRoutine,
           columnDate,
           columnWeight,
+          columnTimer,
           columnSets,
           columnReps,
           columnTypeId
@@ -194,12 +218,35 @@ class DatabaseHelper {
         columns: [
           columnId,
           columnType,
-          columnWeightRequired
+          columnWorkoutEnum
         ],
         where: '$columnId = ?',
         whereArgs: [id]);
     if (maps.length > 0) {
       return WorkoutType.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<List<WorkoutRoutine>?> queryWorkoutsByType(int id) async {
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableWorkouts,
+        columns: [
+          columnId,
+          columnRoutine,
+          columnDate,
+          columnWeight,
+          columnTimer,
+          columnSets,
+          columnReps,
+          columnTypeId
+        ],
+        where: '$columnTypeId = ?',
+        whereArgs: [id]);
+    if (maps.length > 0) {
+      List<WorkoutRoutine> words = [];
+      maps.forEach((map) => words.add(WorkoutRoutine.fromMap(map)));
+      return words;
     }
     return null;
   }
@@ -224,6 +271,16 @@ class DatabaseHelper {
       return words;
     }
     return null;
+  }
+
+  Future<bool> queryHasTypes() async{
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableWorkoutType);
+    return maps.isNotEmpty;
+  }
+
+  bool queryTypeHasWorkouts(){
+    return true;
   }
 
   Future<int> deleteWorkout(int id) async {

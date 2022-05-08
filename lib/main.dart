@@ -238,19 +238,51 @@ class _WorkoutState extends State<Workout> {
       //when opening the add workout modal, an object is always needed
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          WorkoutRoutine workout = WorkoutRoutine();
-          workout.routine = "";
-          workout.date = DateTime.now().toString();
-          workout.sets = 0;
-          workout.reps = 0;
-          workout.weight = 0;
-          workout.typeId = 0;
-          await AddWorkoutForm(context, true, workout);
+          List<WorkoutType>? types = await workout_type;
+          if(types != null){
+            WorkoutRoutine workout = WorkoutRoutine();
+            workout.routine = "";
+            workout.date = DateTime.now().toString();
+            workout.sets = 0;
+            workout.reps = 0;
+            workout.weight = 0;
+            workout.typeId = 0;
+            await AddWorkoutForm(context, true, workout);
+          } else {
+            await noTypesAlert();
+          }
         },
         tooltip: 'Add Workout',
         child: const Icon(Icons.add),
         backgroundColor: Colors.white,
       ),
+    );
+  }
+  Future<void> noTypesAlert() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('No Workouts'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: const <Widget>[
+                Text('No workouts have been added.'),
+                Text('Please add workouts before adding history.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -295,30 +327,33 @@ class _WorkoutState extends State<Workout> {
                         future: workout_type,
                         builder: (context, projectSnap) {
                           if (projectSnap.hasData) {
-                            return DropdownButton<String>(
-                              isExpanded: true,
-                              value: projectSnap.data![types_index].type,
-                              icon: const Icon(Icons.arrow_drop_down),
-                              elevation: 16,
-                              style: const TextStyle(color: Colors.white),
-                              underline: Container(
-                                height: 2,
-                                color: Colors.white,
+                            return IgnorePointer(
+                              ignoring: !add,
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                value: projectSnap.data![types_index].type,
+                                icon: add ? Icon(Icons.arrow_drop_down) : Icon(null),
+                                elevation: 16,
+                                style: add ? TextStyle(color: Colors.white) : TextStyle(color: Colors.grey),
+                                underline: Container(
+                                  height: 2,
+                                  color: Colors.white,
+                                ),
+                                onChanged: (String? newValue) async {
+                                  setState(() {
+                                    routineController.text = newValue!;
+                                    UpdateIndex(newValue);
+                                  });
+                                },
+                                items: projectSnap.data!
+                                    .map<DropdownMenuItem<String>>(
+                                        (WorkoutType value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value.type,
+                                    child: Text(value.type),
+                                  );
+                                }).toList(),
                               ),
-                              onChanged: (String? newValue) async {
-                                setState(() {
-                                  routineController.text = newValue!;
-                                  UpdateIndex(newValue);
-                                });
-                              },
-                              items: projectSnap.data!
-                                  .map<DropdownMenuItem<String>>(
-                                      (WorkoutType value) {
-                                return DropdownMenuItem<String>(
-                                  value: value.type,
-                                  child: Text(value.type),
-                                );
-                              }).toList(),
                             );
                           } else {
                             return const Text(
@@ -404,21 +439,29 @@ class _WorkoutState extends State<Workout> {
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     if (!add) {
-                      _delete(workout.id);
-                    }
-                    int typeId = -1;
-                    for (var i = 0; i < types.length; i++) {
-                      if (types[i].type == routineController.text) {
-                        typeId = types[i].id;
+                      workout.routine = routineController.text;
+                      workout.date = myDateTime.toString();
+                      workout.sets = int.parse(setController.text);
+                      workout.reps = int.parse(repController.text);
+                      workout.weight = double.parse(weightController.text);
+                      workout.timer = 0;
+                      _update(workout);
+                    } else {
+                      int typeId = -1;
+                      for (var i = 0; i < types.length; i++) {
+                        if (types[i].type == routineController.text) {
+                          typeId = types[i].id;
+                        }
                       }
+                      _save(
+                          routineController.text,
+                          myDateTime,
+                          int.parse(setController.text),
+                          int.parse(repController.text),
+                          double.parse(weightController.text),
+                          0,
+                          typeId);
                     }
-                    _save(
-                        routineController.text,
-                        myDateTime,
-                        int.parse(setController.text),
-                        int.parse(repController.text),
-                        double.parse(weightController.text),
-                        typeId);
                     setState(() {
                       workout_list_filtered = _readAll();
                       workout_list = workout_list_filtered;
@@ -449,7 +492,8 @@ class _WorkoutState extends State<Workout> {
           onLongPress: () async {
             await _delete(workouts[index].id);
             setState(() {
-              workout_list = _readAll();
+              workout_list_filtered = _readAll();
+              workout_list = workout_list_filtered;
             });
           },
           title: Column(
@@ -542,8 +586,8 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
           //Navigator.push( context, MaterialPageRoute( builder: (context) => Workout()), ).then((value) => setState(() {}));
           WorkoutType workout = WorkoutType();
           workout.type = "";
-          workout.weightRequired = 1;
-          await AddTypeForm(context, true, workout);
+          workout.workoutEnum = 1;
+          await AddTypeForm(context, true, WorkoutCategories.weight.index, workout);
         },
         tooltip: 'Add Workout',
         child: const Icon(Icons.add),
@@ -567,11 +611,12 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
   }
 
   Future<void> AddTypeForm(
-      BuildContext context, bool add, WorkoutType type) async {
+      BuildContext context, bool add, int category, WorkoutType type) async {
     TextEditingController typeController =
         TextEditingController(text: type.type);
-    TextEditingController weightRequiredController = TextEditingController(
-        text: add ? "Yes" : (type.weightRequired == 1 ? "Yes" : "No"));
+    // TextEditingController categoryController = TextEditingController(
+    //     text: add ? "Yes" : (type.workoutEnum == 1 ? "Yes" : "No"));
+    int? categoryController = category;
     return await showDialog(
       context: context,
       builder: (context) {
@@ -579,20 +624,63 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
           physics: const ClampingScrollPhysics(),
           child: AlertDialog(
             scrollable: true,
-            content: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: typeController,
-                    validator: (value) {
-                      return value!.isNotEmpty ? null : "Empty";
-                    },
-                    decoration: const InputDecoration(hintText: "Workout"),
+            content: StatefulBuilder(
+              builder: (context, setState) {
+                return Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: typeController,
+                        validator: (value) {
+                          return value!.isNotEmpty ? null : "Empty";
+                        },
+                        decoration: const InputDecoration(hintText: "Workout"),
+                      ),
+                      RadioListTile<int>(
+                        value: WorkoutCategories.weight.index,
+                        groupValue: categoryController,
+                        title: Text("Weights"),
+                        onChanged: (value) {
+                          setState(() {
+                            categoryController = WorkoutCategories.weight.index;
+                            log(categoryController.toString());
+                          });
+                        },
+                        activeColor: Colors.green,
+                        toggleable: true,
+                      ),
+                      RadioListTile<int>(
+                        value: WorkoutCategories.timer.index,
+                        groupValue: categoryController,
+                        title: Text("Timer"),
+                        onChanged: (value) {
+                          setState(() {
+                            categoryController = WorkoutCategories.timer.index;
+                            log(categoryController.toString());
+                          });
+                        },
+                        activeColor: Colors.green,
+                        toggleable: true,
+                      ),
+                      RadioListTile<int>(
+                        value: WorkoutCategories.both.index,
+                        groupValue: categoryController,
+                        title: Text("Both"),
+                        onChanged: (value) {
+                          setState(() {
+                            categoryController = WorkoutCategories.both.index;
+                            log(categoryController.toString());
+                          });
+                        },
+                        activeColor: Colors.green,
+                        toggleable: true,
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              }
             ),
             actions: <Widget>[
               TextButton(
@@ -605,12 +693,16 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     if (!add) {
-                      _deleteType(type.id);
+                      type.type = typeController.text;
+                      type.workoutEnum = categoryController!;
+                      _updateType(type);
+                      _updateWorkoutsByType(type.id, typeController.text);
+                    } else {
+                      _saveType(
+                        typeController.text,
+                        categoryController!,
+                      );
                     }
-                    _saveType(
-                      typeController.text,
-                      1,
-                    );
                     setState(() {
                       workout_type = _readAllTypes();
                     });
@@ -628,6 +720,34 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
     );
   }
 
+  Future<void> cantDeleteAlert() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Can Not Delete'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: const <Widget>[
+                Text('This workout has history.'),
+                Text('Please delete all history before deleting workouts.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget buildTypeCard(BuildContext context, int index, types) {
     return Container(
       margin: const EdgeInsets.all(0),
@@ -635,10 +755,15 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
       child: Card(
         child: ListTile(
           onTap: () async {
-            await AddTypeForm(context, false, types[index]);
+            await AddTypeForm(context, false, types[index].workoutEnum, types[index]);
           },
           onLongPress: () async {
-            await _deleteType(types[index].id);
+            List<WorkoutRoutine>? workoutsForType =  await _workoutsByType(types[index].id);
+            if(workoutsForType == null){
+              await _deleteType(types[index].id);
+            } else {
+              return cantDeleteAlert();
+            }
             setState(() {
               workout_type = _readAllTypes();
             });
@@ -650,11 +775,11 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
                 child: Row(
                   children: [
                     Text('${types![index].type} '),
-                    //Spacer(),
+                    const Spacer(),
+                    Text(CategoryString(WorkoutCategories.values[types![index].workoutEnum]))
                   ],
                 ),
               ),
-              //Divider()
             ],
           ),
         ),
@@ -666,7 +791,7 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
 _saveType(String type, int wRequired) async {
   WorkoutType wType = WorkoutType();
   wType.type = type;
-  wType.weightRequired = wRequired;
+  wType.workoutEnum = wRequired;
   DatabaseHelper helper = DatabaseHelper.instance;
   int id = await helper.insertType(wType);
   wType.id = id;
@@ -680,6 +805,14 @@ _deleteType(int _id) async {
   int id = await helper.deleteType(_id);
 
   log('deleted row: $id');
+}
+
+_updateType(WorkoutType type) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  log('updating row: ${type.id.toString()}');
+  int id = await helper.updateType(type);
+
+  log('updated row: $id');
 }
 
 _readType() async {
@@ -720,20 +853,21 @@ Future<List<WorkoutType>?> _readAllTypesDropdown() async {
     WorkoutType add = WorkoutType();
     add.id = -1;
     add.type = "All";
-    add.weightRequired = 1;
+    add.workoutEnum = 1;
     workouts.insert(0, add);
     return workouts;
   }
 }
 
 _save(String routine, DateTime date, int sets, int reps, double weight,
-    int typeId) async {
+    double timer, int typeId) async {
   WorkoutRoutine workout = WorkoutRoutine();
   workout.routine = routine;
   workout.date = date.toString();
   workout.sets = sets;
   workout.reps = reps;
   workout.weight = weight;
+  workout.timer = timer;
   workout.typeId = typeId;
 
   DatabaseHelper helper = DatabaseHelper.instance;
@@ -750,6 +884,14 @@ _delete(int _id) async {
   int id = await helper.deleteWorkout(_id);
 
   log('deleted row: $id');
+}
+
+_update(WorkoutRoutine workout) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  log('updating row: ${workout.id.toString()}');
+  int id = await helper.updateWorkout(workout);
+
+  log('updated row: $id');
 }
 
 _read() async {
@@ -777,6 +919,36 @@ Future<List<WorkoutRoutine>?> _readAll() async {
     workouts.sort((a, b) {
       return b.date.compareTo(a.date);
     });
+    return workouts;
+  }
+}
+
+Future<List<WorkoutRoutine>?> _workoutsByType(int id) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<WorkoutRoutine>? workouts = await helper.queryWorkoutsByType(id);
+  if (workouts == null) {
+    log('read row $id: empty');
+    return null;
+  } else {
+    log('read row $id: $workouts');
+    return workouts;
+  }
+}
+
+Future<List<WorkoutRoutine>?> _updateWorkoutsByType(int id, String workoutName) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<WorkoutRoutine>? workouts = await helper.queryWorkoutsByType(id);
+  if (workouts == null) {
+    log('read row $id: empty');
+    return null;
+  } else {
+    log('read row $id: $workouts');
+    for (var element in workouts) {
+      var temp_workout = element;
+      temp_workout.routine = workoutName;
+      int id = await helper.updateWorkout(temp_workout);
+      log('update row $id');
+    }
     return workouts;
   }
 }
