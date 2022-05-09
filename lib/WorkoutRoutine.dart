@@ -103,7 +103,7 @@ String CategoryString(WorkoutCategories category){
     case WorkoutCategories.timer:
       return "Timer";
     case WorkoutCategories.both:
-      return "Weight & Timer";
+      return "Timer w/ Weight";
   }
 }
 

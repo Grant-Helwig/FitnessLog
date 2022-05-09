@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:developer';
 import 'WorkoutRoutine.dart';
+import 'package:mdi/mdi.dart';
 
 void main() {
   runApp(const MyApp());
@@ -123,14 +124,16 @@ class _WorkoutState extends State<Workout> {
   int types_index = 0;
 
   //function to update the type index for the dropdown
-  UpdateIndex(newValue) async {
+  Future<int> UpdateIndex(newValue) async {
     var types = await workout_type;
     for (var i = 0; i < types!.length; i++) {
       if (newValue == types[i].type) {
         types_index = i;
         log(i.toString());
+        return i;
       }
     }
+    return -1;
   }
 
   @override
@@ -213,16 +216,20 @@ class _WorkoutState extends State<Workout> {
                 }
               }),
           Expanded(
-              child: FutureBuilder<List<WorkoutRoutine>?>(
-                  future: workout_list_filtered,
+              child: FutureBuilder <List<dynamic>?>( //<List<WorkoutRoutine>?>
+                  future: Future.wait([
+                    workout_list_filtered,
+                    workout_type
+                  ]) ,
                   builder: (context, projectSnap) {
-                    if (projectSnap.hasData) {
+                    if (projectSnap.hasData && projectSnap.data![0] != null && projectSnap.data![0].length > 0 ) {
                       return ListView.builder(
                           padding: const EdgeInsets.only(bottom: 100),
-                          itemCount: projectSnap.data?.length,
+                          itemCount: projectSnap.data![0]?.length,
                           itemBuilder: (BuildContext context, int index) =>
                               buildWorkoutCard(
-                                  context, index, projectSnap.data));
+                                  context, projectSnap.data![0][index],projectSnap.data![1])
+                      );
                     } else {
                       return const Align(
                         alignment: Alignment.center,
@@ -247,6 +254,7 @@ class _WorkoutState extends State<Workout> {
             workout.reps = 0;
             workout.weight = 0;
             workout.typeId = 0;
+            types_index = 0;
             await AddWorkoutForm(context, true, workout);
           } else {
             await noTypesAlert();
@@ -291,10 +299,12 @@ class _WorkoutState extends State<Workout> {
     List<WorkoutType>? types = await _readAllTypes();
     List<String> typesString = [];
 
-    for (var i = 0; i < types!.length; i++) {
+    WorkoutType curType = types![0];
+    for (var i = 0; i < types.length; i++) {
       typesString.add(types[i].type);
       if (workout.typeId == types[i].id) {
         types_index = i;
+        curType = types[i];
       }
     }
 
@@ -302,6 +312,8 @@ class _WorkoutState extends State<Workout> {
         TextEditingController(text: typesString[0]);
     TextEditingController weightController =
         TextEditingController(text: add ? null : workout.weight.toString());
+    TextEditingController timerController =
+    TextEditingController(text: add ? null : workout.timer.toString());
     TextEditingController setController =
         TextEditingController(text: add ? null : workout.sets.toString());
     TextEditingController repController =
@@ -340,9 +352,12 @@ class _WorkoutState extends State<Workout> {
                                   color: Colors.white,
                                 ),
                                 onChanged: (String? newValue) async {
+                                  int i = await UpdateIndex(newValue);
                                   setState(() {
                                     routineController.text = newValue!;
-                                    UpdateIndex(newValue);
+                                    //UpdateIndex(newValue);
+                                    curType = projectSnap.data![i];
+                                    log(curType.type);
                                   });
                                 },
                                 items: projectSnap.data!
@@ -362,63 +377,98 @@ class _WorkoutState extends State<Workout> {
                             );
                           }
                         }),
-                    TextFormField(
-                      controller: weightController,
-                      validator: (value) {
-                        return value!.isNotEmpty ? null : "Empty";
-                      },
-                      decoration: const InputDecoration(hintText: "Weight"),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                      ],
+                    Visibility(
+                      visible: curType.workoutEnum == WorkoutCategories.weight.index ||
+                          curType.workoutEnum == WorkoutCategories.both.index,
+                      child: TextFormField(
+                        controller: weightController,
+                        validator: (value) {
+                          return value!.isNotEmpty ? null : "Empty";
+                        },
+                        decoration: const InputDecoration(
+                            hintText: "Weight",
+                            labelText: "Weight *"
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                        ],
+                      ),
                     ),
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            width: 50,
-                            child: TextFormField(
-                              controller: setController,
-                              validator: (value) {
-                                return value!.isNotEmpty ? null : "Empty";
-                              },
-                              decoration:
-                                  const InputDecoration(hintText: "Sets"),
-                              keyboardType: TextInputType.number,
-                              inputFormatters: <TextInputFormatter>[
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9]')),
-                              ],
+                    Visibility(
+                      visible: curType.workoutEnum == WorkoutCategories.timer.index ||
+                          curType.workoutEnum == WorkoutCategories.both.index,
+                      child: TextFormField(
+                        controller: timerController,
+                        validator: (value) {
+                          return value!.isNotEmpty ? null : "Empty";
+                        },
+                        decoration: const InputDecoration(
+                            hintText: "Duration",
+                            labelText: "Duration *"
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                        ],
+                      ),
+                    ),
+                    Visibility(
+                      visible: curType.workoutEnum == WorkoutCategories.weight.index,
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              width: 50,
+                              child: TextFormField(
+                                controller: setController,
+                                validator: (value) {
+                                  return value!.isNotEmpty ? null : "Empty";
+                                },
+                                decoration:
+                                    const InputDecoration(
+                                        hintText: "Sets",
+                                        labelText: "Sets *"
+                                    ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: <TextInputFormatter>[
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'[0-9]')),
+                                ],
+                              ),
                             ),
-                          ),
-                          Container(
-                            width: 50,
-                            child: TextFormField(
-                              controller: repController,
-                              validator: (value) {
-                                return value!.isNotEmpty ? null : "Empty";
-                              },
-                              decoration:
-                                  const InputDecoration(hintText: "Reps"),
-                              keyboardType: TextInputType.number,
-                              inputFormatters: <TextInputFormatter>[
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9]')),
-                              ],
+                            Container(
+                              width: 50,
+                              child: TextFormField(
+                                controller: repController,
+                                validator: (value) {
+                                  return value!.isNotEmpty ? null : "Empty";
+                                },
+                                decoration:
+                                    const InputDecoration(
+                                        hintText: "Reps",
+                                        labelText: "Reps *"
+                                    ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: <TextInputFormatter>[
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'[0-9]')),
+                                ],
+                              ),
                             ),
-                          ),
-                        ]),
+                          ]),
+                    ),
                     TextField(
                       controller: dateController,
                       readOnly: true,
                       onTap: () async {
-                        myDateTime = (await showDatePicker(
+                        var dateTemp = (await showDatePicker(
                           context: context,
                           initialDate: DateTime.parse(workout.date),
                           firstDate: DateTime(2000),
                           lastDate: DateTime(3000),
-                        ))!;
+                        ));
+                        myDateTime = dateTemp ?? myDateTime;
                         dateController.text =
                             DateFormat('yyyy/MM/dd').format(myDateTime);
                         setState(() {});
@@ -441,10 +491,10 @@ class _WorkoutState extends State<Workout> {
                     if (!add) {
                       workout.routine = routineController.text;
                       workout.date = myDateTime.toString();
-                      workout.sets = int.parse(setController.text);
-                      workout.reps = int.parse(repController.text);
-                      workout.weight = double.parse(weightController.text);
-                      workout.timer = 0;
+                      workout.sets = int.parse(setController.text.isEmpty ? "0" : setController.text);
+                      workout.reps = int.parse(repController.text.isEmpty ? "0" : repController.text);
+                      workout.weight = double.parse(weightController.text.isEmpty ? "0" : weightController.text);
+                      workout.timer = double.parse(timerController.text.isEmpty ? "0" : timerController.text);
                       _update(workout);
                     } else {
                       int typeId = -1;
@@ -456,10 +506,10 @@ class _WorkoutState extends State<Workout> {
                       _save(
                           routineController.text,
                           myDateTime,
-                          int.parse(setController.text),
-                          int.parse(repController.text),
-                          double.parse(weightController.text),
-                          0,
+                          int.parse(setController.text.isEmpty ? "0" : setController.text),
+                          int.parse(repController.text.isEmpty ? "0" : repController.text),
+                          double.parse(weightController.text.isEmpty ? "0" : weightController.text),
+                          double.parse(timerController.text.isEmpty ? "0" : timerController.text) ,
                           typeId);
                     }
                     setState(() {
@@ -480,58 +530,168 @@ class _WorkoutState extends State<Workout> {
     );
   }
 
-  Widget buildWorkoutCard(BuildContext context, int index, workouts) {
-    return Container(
-      margin: const EdgeInsets.all(0),
-      //height: 42,
-      child: Card(
-        child: ListTile(
-          onTap: () async {
-            await AddWorkoutForm(context, false, workouts[index]);
-          },
-          onLongPress: () async {
-            await _delete(workouts[index].id);
-            setState(() {
-              workout_list_filtered = _readAll();
-              workout_list = workout_list_filtered;
-            });
-          },
-          title: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Text('${workouts![index].routine} '),
-                    const Spacer(),
-                    Text(
-                      DateFormat('yyyy/MM/dd') // hh:mm a
-                          .format(DateTime.parse(workouts![index].date)),
-                      style: const TextStyle(fontSize: 10),
+  Widget buildWorkoutCard(BuildContext context, workout, types) {
+    WorkoutCategories? cat = null;
+    for (var i = 0; i < types.length; i++) {
+      if (workout.typeId == types[i].id) {
+        cat = WorkoutCategories.values[types[i].workoutEnum];
+        log(CategoryString(cat));
+      }
+    }
+    switch (cat) {
+      case WorkoutCategories.weight:
+        return Container(
+          margin: const EdgeInsets.all(0),
+          //height: 42,
+          child: Card(
+            child: ListTile(
+              onTap: () async {
+                await AddWorkoutForm(context, false, workout);
+              },
+              onLongPress: () async {
+                await _delete(workout.id);
+                setState(() {
+                  workout_list_filtered = _readAll();
+                  workout_list = workout_list_filtered;
+                });
+              },
+              title: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Text('${workout.routine} '),
+                        const Spacer(),
+                        Text(
+                          DateFormat('yyyy/MM/dd') // hh:mm a
+                              .format(DateTime.parse(workout.date)),
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              Container(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      Text('${workouts![index].weight.toString()} LBS'),
-                      const Spacer(),
-                      Text('${workouts![index].sets.toString()} Sets '),
-                      const Spacer(),
-                      Text('${workouts![index].reps.toString()} Reps'),
-                    ],
                   ),
-                ),
+                  const Divider(),
+                  Container(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        children: [
+                          Text('${workout.weight.toString()} LBS'),
+                          const Spacer(),
+                          Text('${workout.sets.toString()} Sets '),
+                          const Spacer(),
+                          Text('${workout.reps.toString()} Reps'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
+      case WorkoutCategories.timer:
+        return Container(
+          margin: const EdgeInsets.all(0),
+          //height: 42,
+          child: Card(
+            child: ListTile(
+              onTap: () async {
+                await AddWorkoutForm(context, false, workout);
+              },
+              onLongPress: () async {
+                await _delete(workout.id);
+                setState(() {
+                  workout_list_filtered = _readAll();
+                  workout_list = workout_list_filtered;
+                });
+              },
+              title: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Text('${workout.routine} '),
+                        const Spacer(),
+                        Text(
+                          DateFormat('yyyy/MM/dd') // hh:mm a
+                              .format(DateTime.parse(workout.date)),
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(),
+                  Container(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Duration: ${workout.timer.toString()}'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      case WorkoutCategories.both:
+        return Container(
+          margin: const EdgeInsets.all(0),
+          //height: 42,
+          child: Card(
+            child: ListTile(
+              onTap: () async {
+                await AddWorkoutForm(context, false, workout);
+              },
+              onLongPress: () async {
+                await _delete(workout.id);
+                setState(() {
+                  workout_list_filtered = _readAll();
+                  workout_list = workout_list_filtered;
+                });
+              },
+              title: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Text('${workout.routine} '),
+                        const Spacer(),
+                        Text(
+                          DateFormat('yyyy/MM/dd') // hh:mm a
+                              .format(DateTime.parse(workout.date)),
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(),
+                  Container(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        children: [
+                          Text('Duration: ${workout.timer.toString()}'),
+                          const Spacer(),
+                          Text('${workout.weight.toString()} LBS'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+    }
+    return const SizedBox.shrink();
   }
 }
 
@@ -587,7 +747,7 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
           WorkoutType workout = WorkoutType();
           workout.type = "";
           workout.workoutEnum = 1;
-          await AddTypeForm(context, true, WorkoutCategories.weight.index, workout);
+          await AddTypeForm(context, true, false, WorkoutCategories.weight.index, workout);
         },
         tooltip: 'Add Workout',
         child: const Icon(Icons.add),
@@ -611,7 +771,7 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
   }
 
   Future<void> AddTypeForm(
-      BuildContext context, bool add, int category, WorkoutType type) async {
+      BuildContext context, bool add, bool lock, int category, WorkoutType type) async {
     TextEditingController typeController =
         TextEditingController(text: type.type);
     // TextEditingController categoryController = TextEditingController(
@@ -642,7 +802,8 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
                         value: WorkoutCategories.weight.index,
                         groupValue: categoryController,
                         title: Text("Weights"),
-                        onChanged: (value) {
+                        onChanged: lock ? null : (value) {
+
                           setState(() {
                             categoryController = WorkoutCategories.weight.index;
                             log(categoryController.toString());
@@ -655,7 +816,7 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
                         value: WorkoutCategories.timer.index,
                         groupValue: categoryController,
                         title: Text("Timer"),
-                        onChanged: (value) {
+                        onChanged: lock ? null : (value) {
                           setState(() {
                             categoryController = WorkoutCategories.timer.index;
                             log(categoryController.toString());
@@ -668,7 +829,7 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
                         value: WorkoutCategories.both.index,
                         groupValue: categoryController,
                         title: Text("Both"),
-                        onChanged: (value) {
+                        onChanged: lock ? null :  (value) {
                           setState(() {
                             categoryController = WorkoutCategories.both.index;
                             log(categoryController.toString());
@@ -755,7 +916,13 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
       child: Card(
         child: ListTile(
           onTap: () async {
-            await AddTypeForm(context, false, types[index].workoutEnum, types[index]);
+            List<WorkoutRoutine>? workoutsForType =  await _workoutsByType(types[index].id);
+            if(workoutsForType == null){
+              await AddTypeForm(context, false, false, types[index].workoutEnum, types[index]);
+            } else {
+              await AddTypeForm(context, false, true, types[index].workoutEnum, types[index]);
+            }
+
           },
           onLongPress: () async {
             List<WorkoutRoutine>? workoutsForType =  await _workoutsByType(types[index].id);
@@ -815,9 +982,8 @@ _updateType(WorkoutType type) async {
   log('updated row: $id');
 }
 
-_readType() async {
+Future<WorkoutType?> _readType(int rowId) async {
   DatabaseHelper helper = DatabaseHelper.instance;
-  int rowId = 1;
   WorkoutType? workout = await helper.queryType(rowId);
   if (workout == null) {
     log('read row $rowId: empty');
