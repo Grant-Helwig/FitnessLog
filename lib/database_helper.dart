@@ -7,8 +7,9 @@ import 'package:sqflite/sqflite.dart';
 
 const String columnId = '_id';
 //workout columns
-const String tableWorkouts = 'Workouts';
-const String columnRoutine = 'routine';
+const String tableWorkoutHistory = 'WorkoutHistory';
+const String columnWorkoutName = 'workoutName';
+const String columnWorkoutType = 'workoutType';
 const String columnDate = 'date';
 const String columnWeight = 'weight';
 const String columnTimer = 'timer';
@@ -16,14 +17,15 @@ const String columnSets = 'sets';
 const String columnReps = 'reps';
 const String columnTypeId = 'typeId';
 //type columns
-const String tableWorkoutType = 'WorkoutType';
+const String tableWorkout = 'Workout';
+const String columnName = 'name';
 const String columnType = 'type';
-const String columnWorkoutEnum = 'workoutEnum';
 
 //class object for saving workout routines
-class WorkoutRoutine {
+class WorkoutHistory {
   int id = -1;
-  late String routine;
+  late String workoutName;
+  late int workoutType;
   late String date;
   late double weight;
   late double timer;
@@ -31,11 +33,12 @@ class WorkoutRoutine {
   late int reps;
   late int typeId;
 
-  WorkoutRoutine();
+  WorkoutHistory();
 
-  WorkoutRoutine.fromMap(Map<dynamic, dynamic> map) {
+  WorkoutHistory.fromMap(Map<dynamic, dynamic> map) {
     id = map[columnId];
-    routine = map[columnRoutine];
+    workoutName = map[columnWorkoutName];
+    workoutType = map[columnWorkoutType];
     date = map[columnDate];
     weight = map[columnWeight];
     timer = map[columnTimer];
@@ -47,7 +50,8 @@ class WorkoutRoutine {
   // convenience method to create a Map from this Word object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
-      columnRoutine: routine,
+      columnWorkoutName: workoutName,
+      columnWorkoutType:workoutType,
       columnDate: date,
       columnWeight: weight,
       columnTimer: timer,
@@ -64,24 +68,24 @@ class WorkoutRoutine {
 
 
 //class object for saving workout types
-class WorkoutType {
+class Workout {
   int id = -1;
-  late String type;
-  late int workoutEnum;
+  late String name;
+  late int type;
 
-  WorkoutType();
+  Workout();
 
-  WorkoutType.fromMap(Map<dynamic, dynamic> map) {
+  Workout.fromMap(Map<dynamic, dynamic> map) {
     id = map[columnId];
+    name = map[columnName];
     type = map[columnType];
-    workoutEnum = map[columnWorkoutEnum];
   }
 
   // convenience method to create a Map from this Word object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
-      columnType: type,
-      columnWorkoutEnum: workoutEnum
+      columnName: name,
+      columnType: type
     };
     if (id != -1) {
       map[columnId] = id;
@@ -90,20 +94,20 @@ class WorkoutType {
   }
 }
 
-enum WorkoutCategories {
-  weight,
-  timer,
+enum WorkoutType {
+  strength,
+  cardio,
   both
 }
 
-String CategoryString(WorkoutCategories category){
+String workoutTypeString(WorkoutType category){
   switch (category) {
-    case WorkoutCategories.weight:
-      return "Weight";
-    case WorkoutCategories.timer:
-      return "Timer";
-    case WorkoutCategories.both:
-      return "Timer w/ Weight";
+    case WorkoutType.strength:
+      return "Strength";
+    case WorkoutType.cardio:
+      return "Cardio";
+    case WorkoutType.both:
+      return "Strength & Cardio";
   }
 }
 
@@ -155,48 +159,49 @@ class DatabaseHelper {
   Future _onCreate(Database db, int version) async {
     await db.execute("PRAGMA foreign_keys = ON");
     await db.execute('''
-              CREATE TABLE $tableWorkoutType (
+              CREATE TABLE $tableWorkout (
                 $columnId INTEGER PRIMARY KEY,
-                $columnType TEXT NOT NULL,
-                $columnWorkoutEnum INTEGER NOT NULL
+                $columnName TEXT NOT NULL,
+                $columnType INTEGER NOT NULL
               )
               ''');
 
     await db.execute('''
-              CREATE TABLE $tableWorkouts (
+              CREATE TABLE $tableWorkoutHistory (
                 $columnId INTEGER PRIMARY KEY,
-                $columnRoutine TEXT NOT NULL,
+                $columnWorkoutName TEXT NOT NULL,
+                $columnTypeId INTEGER NOT NULL,
                 $columnDate TEXT NOT NULL,
                 $columnWeight DOUBLE NOT NULL,
                 $columnTimer DOUBLE NOT NULL,
                 $columnSets INTEGER NOT NULL,
                 $columnReps INTEGER NOT NULL,
-                $columnTypeId INTEGER NOT NULL,
-                FOREIGN KEY($columnTypeId) REFERENCES $tableWorkoutType($columnId)
+                FOREIGN KEY($columnTypeId) REFERENCES $tableWorkout($columnId)
               )
               ''');
 
   }
 
   // Database helper methods
-  Future<int> insertWorkout(WorkoutRoutine workoutRoutine) async {
+  Future<int> insertWorkoutHistory(WorkoutHistory workoutHistory) async {
     Database? db = await database;
-    int id = await db!.insert(tableWorkouts, workoutRoutine.toMap());
+    int id = await db!.insert(tableWorkoutHistory, workoutHistory.toMap());
     return id;
   }
 
-  Future<int> insertType(WorkoutType workoutType) async {
+  Future<int> insertWorkout(Workout workout) async {
     Database? db = await database;
-    int id = await db!.insert(tableWorkoutType, workoutType.toMap());
+    int id = await db!.insert(tableWorkout, workout.toMap());
     return id;
   }
 
-  Future<WorkoutRoutine?> queryWorkout(int id) async {
+  Future<WorkoutHistory?> queryWorkoutHistory(int id) async {
     Database? db = await database;
-    List<Map> maps = await db!.query(tableWorkouts,
+    List<Map> maps = await db!.query(tableWorkoutHistory,
         columns: [
           columnId,
-          columnRoutine,
+          columnWorkoutName,
+          columnWorkoutType,
           columnDate,
           columnWeight,
           columnTimer,
@@ -207,33 +212,34 @@ class DatabaseHelper {
         where: '$columnId = ?',
         whereArgs: [id]);
     if (maps.length > 0) {
-      return WorkoutRoutine.fromMap(maps.first);
+      return WorkoutHistory.fromMap(maps.first);
     }
     return null;
   }
 
-  Future<WorkoutType?> queryType(int id) async {
+  Future<Workout?> queryWorkout(int id) async {
     Database? db = await database;
-    List<Map> maps = await db!.query(tableWorkoutType,
+    List<Map> maps = await db!.query(tableWorkout,
         columns: [
           columnId,
-          columnType,
-          columnWorkoutEnum
+          columnName,
+          columnType
         ],
         where: '$columnId = ?',
         whereArgs: [id]);
     if (maps.length > 0) {
-      return WorkoutType.fromMap(maps.first);
+      return Workout.fromMap(maps.first);
     }
     return null;
   }
 
-  Future<List<WorkoutRoutine>?> queryWorkoutsByType(int id) async {
+  Future<List<WorkoutHistory>?> queryWorkoutHistoryByType(int id) async {
     Database? db = await database;
-    List<Map> maps = await db!.query(tableWorkouts,
+    List<Map> maps = await db!.query(tableWorkoutHistory,
         columns: [
           columnId,
-          columnRoutine,
+          columnWorkoutName,
+          columnWorkoutType,
           columnDate,
           columnWeight,
           columnTimer,
@@ -244,66 +250,66 @@ class DatabaseHelper {
         where: '$columnTypeId = ?',
         whereArgs: [id]);
     if (maps.length > 0) {
-      List<WorkoutRoutine> words = [];
-      maps.forEach((map) => words.add(WorkoutRoutine.fromMap(map)));
-      return words;
+      List<WorkoutHistory> history = [];
+      maps.forEach((map) => history.add(WorkoutHistory.fromMap(map)));
+      return history;
     }
     return null;
   }
 
-  Future<List<WorkoutRoutine>?> queryAllWorkouts() async {
+  Future<List<WorkoutHistory>?> queryAllWorkoutHistory() async {
     Database? db = await database;
-    List<Map> maps = await db!.query(tableWorkouts);
+    List<Map> maps = await db!.query(tableWorkoutHistory);
     if (maps.length > 0) {
-      List<WorkoutRoutine> words = [];
-      maps.forEach((map) => words.add(WorkoutRoutine.fromMap(map)));
-      return words;
+      List<WorkoutHistory> history = [];
+      maps.forEach((map) => history.add(WorkoutHistory.fromMap(map)));
+      return history;
     }
     return null;
   }
 
-  Future<List<WorkoutType>?> queryAllTypes() async {
+  Future<List<Workout>?> queryAllWorkouts() async {
     Database? db = await database;
-    List<Map> maps = await db!.query(tableWorkoutType);
+    List<Map> maps = await db!.query(tableWorkout);
     if (maps.length > 0) {
-      List<WorkoutType> words = [];
-      maps.forEach((map) => words.add(WorkoutType.fromMap(map)));
-      return words;
+      List<Workout> workouts = [];
+      maps.forEach((map) => workouts.add(Workout.fromMap(map)));
+      return workouts;
     }
     return null;
   }
 
-  Future<bool> queryHasTypes() async{
+  Future<bool> queryHasWorkouts() async{
     Database? db = await database;
-    List<Map> maps = await db!.query(tableWorkoutType);
+    List<Map> maps = await db!.query(tableWorkout);
     return maps.isNotEmpty;
   }
 
-  bool queryTypeHasWorkouts(){
+  bool queryWorkoutHasHistory(){
     return true;
+  }
+
+  Future<int> deleteWorkoutHistory(int id) async {
+    Database? db = await database;
+    return await db!
+        .delete(tableWorkoutHistory, where: '$columnId = ?', whereArgs: [id]);
   }
 
   Future<int> deleteWorkout(int id) async {
     Database? db = await database;
     return await db!
-        .delete(tableWorkouts, where: '$columnId = ?', whereArgs: [id]);
+        .delete(tableWorkout, where: '$columnId = ?', whereArgs: [id]);
   }
 
-  Future<int> deleteType(int id) async {
+  Future<int> updateWorkoutHistory(WorkoutHistory workout) async {
     Database? db = await database;
-    return await db!
-        .delete(tableWorkoutType, where: '$columnId = ?', whereArgs: [id]);
-  }
-
-  Future<int> updateWorkout(WorkoutRoutine workout) async {
-    Database? db = await database;
-    return await db!.update(tableWorkouts, workout.toMap(),
+    return await db!.update(tableWorkoutHistory, workout.toMap(),
         where: '$columnId = ?', whereArgs: [workout.id]);
   }
 
-  Future<int> updateType(WorkoutType workout) async {
+  Future<int> updateWorkout(Workout workout) async {
     Database? db = await database;
-    return await db!.update(tableWorkoutType, workout.toMap(),
+    return await db!.update(tableWorkout, workout.toMap(),
         where: '$columnId = ?', whereArgs: [workout.id]);
   }
 }
