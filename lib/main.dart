@@ -34,6 +34,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final GlobalKey _key = GlobalKey();
+
+  //main page that has 3 tabs
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -83,7 +85,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           body: const TabBarView(
             children: <Widget>[
-              WorkoutPage(type:null),
+              WorkoutPage(workout:null),
               WorkoutTemplate(),
               Align(
                 alignment: Alignment.center,
@@ -94,22 +96,21 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ],
           ),
-        ));
+        ),
+    );
   }
 }
 
 class WorkoutPage extends StatefulWidget {
-  final Workout? type;
-  const WorkoutPage({Key? key, required this.type}) : super(key: key);
+  final Workout? workout;
+  const WorkoutPage({Key? key, required this.workout}) : super(key: key);
   @override
-  State<WorkoutPage> createState() => _WorkoutPageState(type: this.type);
+  State<WorkoutPage> createState() => _WorkoutPageState(workout: this.workout);
 }
 
 class _WorkoutPageState extends State<WorkoutPage> {
-  late Workout? type;
-  _WorkoutPageState({required this.type});
-
-
+  late Workout? workout;
+  _WorkoutPageState({required this.workout});
 
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -117,16 +118,16 @@ class _WorkoutPageState extends State<WorkoutPage> {
   DateTimeRange? _selectedDateRange = todayRange();
 
   //list of all saved workout history
-  Future<List<WorkoutHistory>?> workout_list = _readAll();
+  Future<List<WorkoutHistory>?> workout_history_list = _readAll();
 
   //separate list is needed for filter
-  Future<List<WorkoutHistory>?> workout_list_filtered = _workoutsByDates(todayRange());
+  Future<List<WorkoutHistory>?> workout_history_list_filtered = _workoutsByDates(todayRange());
 
   //list of all saved workout types
-  Future<List<Workout>?> workout_type = _readAllTypes();
+  Future<List<Workout>?> workouts = _readAllTypes();
 
   //dropdown list is needed, adds an option for all
-  Future<List<Workout>?> workout_type_dropdown =_readAllTypesDropdown();
+  Future<List<Workout>?> workout_dropdown =_readAllTypesDropdown();
 
 
   //index for position in their lists
@@ -135,7 +136,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
   //function to update the type index for the dropdown
   Future<int> UpdateIndex(newValue) async {
-    var types = await workout_type;
+    var types = await workouts;
     for (var i = 0; i < types!.length; i++) {
       if (newValue == types[i].name) {
         types_index = i;
@@ -160,13 +161,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
     if (result != null) {
       // Rebuild the UI
-      var dropdown_list = await workout_type_dropdown;
+      var dropdown_list = await workout_dropdown;
       setState(() {
         _selectedDateRange = result;
         if(dropdown_list![filter_index].id == -1){
-          workout_list_filtered = _workoutsByDates(result);
+          workout_history_list_filtered = _workoutsByDates(result);
         } else {
-          workout_list_filtered = _workoutsByTypeAndDates(dropdown_list[filter_index].id ,result);
+          workout_history_list_filtered = _workoutsByTypeAndDates(dropdown_list[filter_index].id ,result);
         }
       });
     }
@@ -174,51 +175,73 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
   @override
   Widget build(BuildContext context) {
-    if(type != null){
-      workout_list_filtered = _workoutsByTypeAndDates(type!.id, _selectedDateRange!);
+
+    //if you navigated from the profile, pre filter the history by the id and range
+    if(workout != null){
+      workout_history_list_filtered = _workoutsByTypeAndDates(workout!.id, _selectedDateRange!);
     }
 
     Future<List<WorkoutHistory>?> getList(List<WorkoutHistory>? temp) async {
       return temp;
     }
-    //log("current workout is ${type!.type}");
-    void dropdownFilter(int filter) async {
-      log(filter.toString());
-      Future<List<WorkoutHistory>?> results;
-      if (filter == -1) {
-        results = _workoutsByDates(_selectedDateRange!);
+
+    //update the filtered list and the filtered index from the dropdown selection
+    void dropdownFilter(int workoutId) async {
+
+      // log(workoutId.toString());
+      // Future<List<WorkoutHistory>?> results;
+      // if (workoutId == -1) {
+      //   results = _workoutsByDates(_selectedDateRange!);
+      // } else {
+      //   //construct a list to display with the matching keys
+      //   results = Future<List<WorkoutHistory>?>.value();
+      //   List<WorkoutHistory>? temp = [];
+      //   await workout_history_list.then((value) {
+      //     if (value != null) {
+      //       for (var item in value) {
+      //         if (item.typeId == workoutId) {
+      //
+      //           if(_selectedDateRange!.start.isBefore(DateTime.parse(item.date))
+      //               && _selectedDateRange!.end.isAfter(DateTime.parse(item.date)) ||
+      //               datesEqual(_selectedDateRange!.start, DateTime.parse(item.date)) ||
+      //               datesEqual(_selectedDateRange!.end, DateTime.parse(item.date))){
+      //             temp.add(item);
+      //           }
+      //         }
+      //       }
+      //     }
+      //   });
+      //   temp.forEach((element) {
+      //     log(element.workoutName);
+      //   });
+      //   results = getList(temp);
+      // }
+      var types = await workout_dropdown;
+      Future<List<WorkoutHistory>?> filtered_history;
+      if (workoutId == -1) {
+        filtered_history = _workoutsByDates(_selectedDateRange!);
       } else {
-        //construct a list to display with the matching keys
-        results = Future<List<WorkoutHistory>?>.value();
-        List<WorkoutHistory>? temp = [];
-        await workout_list.then((value) {
-          if (value != null) {
-            for (var item in value) {
-              if (item.typeId == filter) {
-                
-                if(_selectedDateRange!.start.isBefore(DateTime.parse(item.date)) 
-                    && _selectedDateRange!.end.isAfter(DateTime.parse(item.date)) ||
-                    datesEqual(_selectedDateRange!.start, DateTime.parse(item.date)) ||
-                    datesEqual(_selectedDateRange!.end, DateTime.parse(item.date))){
-                  temp.add(item);
-                }
-              }
-            }
-          }
-        });
-        temp.forEach((element) {
-          log(element.workoutName);
-        });
-        results = getList(temp);
+        if(workout == null){
+
+        } else {
+          filtered_history =  _workoutsByTypeAndDates(workout!.id, _selectedDateRange!);
+        }
       }
-      var types = await workout_type_dropdown;
+      //Future<List<WorkoutHistory>?> filtered_history =  _workoutsByTypeAndDates(workout!.id, _selectedDateRange!);
       //var new_list = await _workoutsByTypeAndDates(type!.id, _selectedDateRange!);
       // Refresh the UI
       setState(() {
-        workout_list_filtered = results;
+        //workout_history_list_filtered = results;
+        //workout_history_list_filtered = filtered_history;
+
+        if (workoutId == -1) {
+          workout_history_list_filtered = _workoutsByDates(_selectedDateRange!);
+        } else  {
+          workout_history_list_filtered = _workoutsByTypeAndDates(workoutId, _selectedDateRange!);
+        }
 
         for (int i = 0; i < types!.length; i++) {
-          if (filter == types[i].id) {
+          if (workoutId == types[i].id) {
             filter_index = i;
           }
         }
@@ -227,7 +250,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
     Widget dropdownWidget () {
       return FutureBuilder<List<Workout>?>(
-          future: workout_type_dropdown,
+          future: workout_dropdown,
           builder: (context, projectSnap) {
             if (projectSnap.hasData) {
               return DropdownButton<String>(
@@ -240,7 +263,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
                   height: 2,
                   color: Colors.white,
                 ),
-                onChanged: (String? newValue) => dropdownFilter(projectSnap
+                onChanged: (String? newValue) =>
+                    dropdownFilter(projectSnap
                     .data!
                     .firstWhere((element) => element.name == newValue)
                     .id),
@@ -274,12 +298,12 @@ class _WorkoutPageState extends State<WorkoutPage> {
               )
           ),
           Divider(),
-          if(type == null) dropdownWidget(),
+          if(workout == null) dropdownWidget(),
           Expanded(
               child: FutureBuilder <List<dynamic>?>( //<List<WorkoutRoutine>?>
                   future: Future.wait([
-                    workout_list_filtered,
-                    workout_type
+                    workout_history_list_filtered,
+                    workouts
                   ]) ,
                   builder: (context, projectSnap) {
                     if (projectSnap.hasData && projectSnap.data![0] != null && projectSnap.data![0].length > 0 ) {
@@ -305,21 +329,21 @@ class _WorkoutPageState extends State<WorkoutPage> {
       //when opening the add workout modal, an object is always needed
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          List<Workout>? types = await workout_type;
+          List<Workout>? types = await workouts;
           if(types != null){
 
-            WorkoutHistory workout = WorkoutHistory();
-            workout.workoutName = "";
-            workout.date = DateTime.now().toString();
-            workout.sets = 0;
-            workout.reps = 0;
-            workout.weight = 0;
-            workout.typeId = 0;
+            WorkoutHistory workoutHistory = WorkoutHistory();
+            workoutHistory.workoutName = "";
+            workoutHistory.date = DateTime.now().toString();
+            workoutHistory.sets = 0;
+            workoutHistory.reps = 0;
+            workoutHistory.weight = 0;
+            workoutHistory.typeId = 0;
             types_index = 0;
-            if(type == null){
-              await AddWorkoutForm(context, true, workout, false);
+            if(workout == null){
+              await AddWorkoutForm(context, true, workoutHistory, false);
             } else {
-              await AddWorkoutForm(context, true, workout, true);
+              await AddWorkoutForm(context, true, workoutHistory, true);
             }
 
           } else {
@@ -361,7 +385,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
   }
 
   Future<void> AddWorkoutForm(
-      BuildContext context, bool add, WorkoutHistory workout, bool hasContext) async {
+      BuildContext context, bool add, WorkoutHistory workoutHistory, bool hasContext) async {
     List<Workout>? types = await _readAllTypes();
     List<String> typesString = [];
     Workout curType = types![0];
@@ -373,18 +397,18 @@ class _WorkoutPageState extends State<WorkoutPage> {
     //   }
     // }
 
-    if(type != null){
+    if(workout != null){
       for (var i = 0; i < types.length; i++) {
         typesString.add(types[i].name);
-        if (type!.id == types[i].id) {
+        if (workout!.id == types[i].id) {
           types_index = i;
         }
       }
-      curType = type!;
+      curType = workout!;
     } else {
       for (var i = 0; i < types.length; i++) {
         typesString.add(types[i].name);
-        if (workout.typeId == types[i].id) {
+        if (workoutHistory.typeId == types[i].id) {
           types_index = i;
           curType = types[i];
         }
@@ -392,18 +416,18 @@ class _WorkoutPageState extends State<WorkoutPage> {
     }
 
     TextEditingController routineController =
-        TextEditingController(text: type != null ? type!.name : typesString[0]);
+        TextEditingController(text: workout != null ? workout!.name : typesString[0]);
     TextEditingController weightController =
-        TextEditingController(text: add ? null : workout.weight.toString());
+        TextEditingController(text: add ? null : workoutHistory.weight.toString());
     TextEditingController timerController =
-    TextEditingController(text: add ? null : workout.timer.toString());
+    TextEditingController(text: add ? null : workoutHistory.timer.toString());
     TextEditingController setController =
-        TextEditingController(text: add ? null : workout.sets.toString());
+        TextEditingController(text: add ? null : workoutHistory.sets.toString());
     TextEditingController repController =
-        TextEditingController(text: add ? null : workout.reps.toString());
-    DateTime myDateTime = DateTime.parse(workout.date);
+        TextEditingController(text: add ? null : workoutHistory.reps.toString());
+    DateTime myDateTime = DateTime.parse(workoutHistory.date);
     TextEditingController dateController = TextEditingController(
-        text: DateFormat('yyyy/MM/dd').format(DateTime.parse(workout.date)));
+        text: DateFormat('yyyy/MM/dd').format(DateTime.parse(workoutHistory.date)));
     return await showDialog(
       context: context,
       builder: (context) {
@@ -419,7 +443,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     FutureBuilder<List<Workout>?>(
-                        future: workout_type,
+                        future: workouts,
                         builder: (context, projectSnap) {
                           if (projectSnap.hasData) {
                             return IgnorePointer(
@@ -548,7 +572,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         DateTime now = DateTime.now();
                         var dateTemp = (await showDatePicker(
                           context: context,
-                          initialDate: DateTime.parse(workout.date),
+                          initialDate: DateTime.parse(workoutHistory.date),
                           firstDate: DateTime(now.year - 5, now.month, now.day),
                           lastDate: DateTime(now.year, now.month, now.day),
                         ));
@@ -573,13 +597,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     if (!add) {
-                      workout.workoutName = routineController.text;
-                      workout.date = myDateTime.toString();
-                      workout.sets = int.parse(setController.text.isEmpty ? "0" : setController.text);
-                      workout.reps = int.parse(repController.text.isEmpty ? "0" : repController.text);
-                      workout.weight = double.parse(weightController.text.isEmpty ? "0" : weightController.text);
-                      workout.timer = double.parse(timerController.text.isEmpty ? "0" : timerController.text);
-                      _update(workout);
+                      workoutHistory.workoutName = routineController.text;
+                      workoutHistory.date = myDateTime.toString();
+                      workoutHistory.sets = int.parse(setController.text.isEmpty ? "0" : setController.text);
+                      workoutHistory.reps = int.parse(repController.text.isEmpty ? "0" : repController.text);
+                      workoutHistory.weight = double.parse(weightController.text.isEmpty ? "0" : weightController.text);
+                      workoutHistory.timer = double.parse(timerController.text.isEmpty ? "0" : timerController.text);
+                      _update(workoutHistory);
                     } else {
                       int typeId = -1;
                       int workoutType = -1;
@@ -600,8 +624,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
                           typeId);
                     }
                     setState(() {
-                      workout_list_filtered = _readAll();
-                      workout_list = workout_list_filtered;
+                      workout_history_list_filtered = _readAll();
+                      workout_history_list = workout_history_list_filtered;
                       filter_index = 0;
                     });
                     Navigator.of(context).pop();
@@ -617,10 +641,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
     );
   }
 
-  Widget buildWorkoutCard(BuildContext context, workout, types) {
+  Widget buildWorkoutCard(BuildContext context, workoutHistory, types) {
     WorkoutType? cat = null;
     for (var i = 0; i < types.length; i++) {
-      if (workout.typeId == types[i].id) {
+      if (workoutHistory.typeId == types[i].id) {
         cat = WorkoutType.values[types[i].type];
         log(workoutTypeString(cat));
       }
@@ -633,13 +657,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
           child: Card(
             child: ListTile(
               onTap: () async {
-                await AddWorkoutForm(context, false, workout, true);
+                await AddWorkoutForm(context, false, workoutHistory, true);
               },
               onLongPress: () async {
-                await _delete(workout.id);
+                await _delete(workoutHistory.id);
                 setState(() {
-                  workout_list_filtered = _readAll();
-                  workout_list = workout_list_filtered;
+                  workout_history_list_filtered = _readAll();
+                  workout_history_list = workout_history_list_filtered;
                 });
               },
               title: Column(
@@ -648,11 +672,11 @@ class _WorkoutPageState extends State<WorkoutPage> {
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
                       children: [
-                        Text('${workout.workoutName} '),
+                        Text('${workoutHistory.workoutName} '),
                         const Spacer(),
                         Text(
                           DateFormat('yyyy/MM/dd') // hh:mm a
-                              .format(DateTime.parse(workout.date)),
+                              .format(DateTime.parse(workoutHistory.date)),
                           style: const TextStyle(fontSize: 10),
                         ),
                       ],
@@ -664,11 +688,11 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       padding: const EdgeInsets.all(8.0),
                       child: Row(
                         children: [
-                          Text('${workout.strength.toString()} LBS'),
+                          Text('${workoutHistory.weight.toString()} LBS'),
                           const Spacer(),
-                          Text('${workout.sets.toString()} Sets '),
+                          Text('${workoutHistory.sets.toString()} Sets '),
                           const Spacer(),
-                          Text('${workout.reps.toString()} Reps'),
+                          Text('${workoutHistory.reps.toString()} Reps'),
                         ],
                       ),
                     ),
@@ -685,13 +709,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
           child: Card(
             child: ListTile(
               onTap: () async {
-                await AddWorkoutForm(context, false, workout, true);
+                await AddWorkoutForm(context, false, workoutHistory, true);
               },
               onLongPress: () async {
-                await _delete(workout.id);
+                await _delete(workoutHistory.id);
                 setState(() {
-                  workout_list_filtered = _readAll();
-                  workout_list = workout_list_filtered;
+                  workout_history_list_filtered = _readAll();
+                  workout_history_list = workout_history_list_filtered;
                 });
               },
               title: Column(
@@ -700,11 +724,11 @@ class _WorkoutPageState extends State<WorkoutPage> {
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
                       children: [
-                        Text('${workout.workoutName} '),
+                        Text('${workoutHistory.workoutName} '),
                         const Spacer(),
                         Text(
                           DateFormat('yyyy/MM/dd') // hh:mm a
-                              .format(DateTime.parse(workout.date)),
+                              .format(DateTime.parse(workoutHistory.date)),
                           style: const TextStyle(fontSize: 10),
                         ),
                       ],
@@ -717,7 +741,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Duration: ${workout.cardio.toString()}'),
+                          Text('Duration: ${workoutHistory.timer.toString()}'),
                         ],
                       ),
                     ),
@@ -734,13 +758,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
           child: Card(
             child: ListTile(
               onTap: () async {
-                await AddWorkoutForm(context, false, workout, true);
+                await AddWorkoutForm(context, false, workoutHistory, true);
               },
               onLongPress: () async {
-                await _delete(workout.id);
+                await _delete(workoutHistory.id);
                 setState(() {
-                  workout_list_filtered = _readAll();
-                  workout_list = workout_list_filtered;
+                  workout_history_list_filtered = _readAll();
+                  workout_history_list = workout_history_list_filtered;
                 });
               },
               title: Column(
@@ -749,11 +773,11 @@ class _WorkoutPageState extends State<WorkoutPage> {
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
                       children: [
-                        Text('${workout.workoutName} '),
+                        Text('${workoutHistory.workoutName} '),
                         const Spacer(),
                         Text(
                           DateFormat('yyyy/MM/dd') // hh:mm a
-                              .format(DateTime.parse(workout.date)),
+                              .format(DateTime.parse(workoutHistory.date)),
                           style: const TextStyle(fontSize: 10),
                         ),
                       ],
@@ -765,9 +789,9 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       padding: const EdgeInsets.all(8.0),
                       child: Row(
                         children: [
-                          Text('Duration: ${workout.cardio.toString()}'),
+                          Text('Duration: ${workoutHistory.cardio.toString()}'),
                           const Spacer(),
-                          Text('${workout.strength.toString()} LBS'),
+                          Text('${workoutHistory.strength.toString()} LBS'),
                         ],
                       ),
                     ),
@@ -1137,7 +1161,7 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
           ),
           body: TabBarView(
             children: <Widget>[
-              WorkoutPage(type: type,),
+              WorkoutPage(workout: type,),
               const Align(
                 alignment: Alignment.center,
                 child: Text(

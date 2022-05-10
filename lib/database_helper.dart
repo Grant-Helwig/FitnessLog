@@ -170,6 +170,7 @@ class DatabaseHelper {
               CREATE TABLE $tableWorkoutHistory (
                 $columnId INTEGER PRIMARY KEY,
                 $columnWorkoutName TEXT NOT NULL,
+                $columnWorkoutType INTEGER NOT NULL,
                 $columnTypeId INTEGER NOT NULL,
                 $columnDate TEXT NOT NULL,
                 $columnWeight DOUBLE NOT NULL,
