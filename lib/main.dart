@@ -582,13 +582,16 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       _update(workout);
                     } else {
                       int typeId = -1;
+                      int workoutType = -1;
                       for (var i = 0; i < types.length; i++) {
                         if (types[i].name == routineController.text) {
                           typeId = types[i].id;
+                          workoutType = types[i].type;
                         }
                       }
                       _save(
                           routineController.text,
+                          workoutType,
                           myDateTime,
                           int.parse(setController.text.isEmpty ? "0" : setController.text),
                           int.parse(repController.text.isEmpty ? "0" : repController.text),
@@ -1219,10 +1222,11 @@ Future<List<Workout>?> _readAllTypesDropdown() async {
   }
 }
 
-_save(String routine, DateTime date, int sets, int reps, double weight,
+_save(String routine, int type, DateTime date, int sets, int reps, double weight,
     double timer, int typeId) async {
   WorkoutHistory workout = WorkoutHistory();
   workout.workoutName = routine;
+  workout.workoutType = type;
   workout.date = date.toString();
   workout.sets = sets;
   workout.reps = reps;
