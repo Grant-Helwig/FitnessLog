@@ -1346,8 +1346,8 @@ class _RoutinePageState extends State<RoutinePage> {
       child: Card(
         child: ListTile(
           onTap: () async {
-            // Navigator.push(context,
-            //     MaterialPageRoute(builder: (context) => RoutineProfile( routine: curRoutines![index])));
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => RoutineProfile( routine: curRoutines![index])));
           },
           onLongPress: () async {
             return updateOptions(curRoutines[index]);
@@ -1376,16 +1376,194 @@ class _RoutinePageState extends State<RoutinePage> {
 }
 
 class RoutineProfile extends StatefulWidget {
-  const RoutineProfile({Key? key}) : super(key: key);
+  final Routine routine;
+  const RoutineProfile({Key? key, required this.routine}) : super(key: key);
 
   @override
-  State<RoutineProfile> createState() => _RoutineProfileState();
+  State<RoutineProfile> createState() => _RoutineProfileState(routine: this.routine);
 }
 
 class _RoutineProfileState extends State<RoutineProfile> {
+  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  late Routine routine;
+  _RoutineProfileState({required this.routine});
+
+  Widget OrderedWorkoutList(){
+    Future<List<RoutineEntry>?> routineEntries = _routineEntryByRoutine(routine.id);
+    return Scaffold(
+      body: FutureBuilder <List<RoutineEntry>?>(
+        future: routineEntries,
+        builder: (context,AsyncSnapshot<List<RoutineEntry>?> snapshot) {
+          if(snapshot.hasData){
+            return ReorderableListView(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              children: <Widget>[
+                for (int index = 0; index < snapshot.data!.length; index += 1)
+                  ListTile(
+                    key: Key('$index'),
+                    tileColor: Colors.black12,
+                    title: Text('Item ${snapshot.data![index].workoutName}'),
+                  ),
+              ],
+              onReorder: (int oldIndex, int newIndex) {
+                setState(() {
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
+                  final RoutineEntry item = snapshot.data!.removeAt(oldIndex);
+                  snapshot.data!.insert(newIndex, item);
+                  //need to update the order values here
+                });
+              },
+            );
+          } else {
+            return SizedBox.shrink();
+          }
+        }
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          //Navigator.push( context, MaterialPageRoute( builder: (context) => Workout()), ).then((value) => setState(() {}));
+
+          await AddWorkoutEntryForm(context);
+        },
+        tooltip: 'Add Workout',
+        child: const Icon(Icons.add),
+        backgroundColor: Colors.white,
+      ),
+    );
+  }
+
+  Future<void> AddWorkoutEntryForm(BuildContext context) async {
+    List<Workout>? workouts = await _readAllWorkouts();
+    Workout workout = workouts![0];
+    TextEditingController workoutController = TextEditingController(text: workouts[0].name);
+
+    return await showDialog(
+      context: context,
+      builder: (context) {
+        return SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: AlertDialog(
+            scrollable: true,
+            content: StatefulBuilder(
+                builder: (BuildContext context, StateSetter setState) {
+                  return Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DropdownButton<Workout>(
+                          isExpanded: true,
+                          value: workout,
+                          icon: Icon(Icons.arrow_drop_down),
+                          elevation: 16,
+                          style: TextStyle(color: Colors.white),
+                          underline: Container(
+                            height: 2,
+                            color: Colors.white,
+                          ),
+                          onChanged: (Workout? newValue) async {
+                            setState(() {
+                              workout = newValue!;
+                            });
+                          },
+                          items: workouts
+                              .map<DropdownMenuItem<Workout>>(
+                                  (Workout value) {
+                                return DropdownMenuItem<Workout>(
+                                  value: value,
+                                  child: Text(value.name),
+                                );
+                              }).toList(),
+                        ),
+                        ],
+                    ),
+                  );
+                }),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    var temp = await _routineEntryByRoutine(routine.id);
+                    if(temp == null){
+                      _saveRoutineEntry(workout.name, workout.id, routine.id, 0);
+                    } else {
+                      _saveRoutineEntry(workout.name, workout.id, routine.id, temp.length);
+                    }
+                    setState(() {
+                      //update routine entry list
+                    });
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: const Text("Save"),
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container();
+    log("current routine is ${routine.name}");
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: Text(
+            routine.name,
+            textAlign: TextAlign.center,
+          ),
+          bottom: const TabBar(tabs: <Widget>[
+            SizedBox(
+              height: 30.0,
+              child: Align(
+                alignment: Alignment.center,
+                child: Text(
+                  'Workouts',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 30.0,
+              child: Align(
+                alignment: Alignment.center,
+                child: Text(
+                  'Metrics',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10),
+                ),
+              ),
+            )
+          ]),
+        ),
+        body: TabBarView(
+          children: <Widget>[
+            OrderedWorkoutList(),
+            const Align(
+              alignment: Alignment.center,
+              child: Text(
+                'Metrics Coming Soon',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -1476,6 +1654,47 @@ Future<List<Routine>?> _readAllRoutines() async {
   } else {
     log('read row: $routines');
     return routines;
+  }
+}
+
+_saveRoutineEntry(String workoutName, int workoutId, int routineId, int order) async {
+  RoutineEntry routineEntry = RoutineEntry();
+  routineEntry.workoutName = workoutName;
+  routineEntry.workoutId = workoutId;
+  routineEntry.routineId = routineId;
+  routineEntry.order = order;
+  DatabaseHelper helper = DatabaseHelper.instance;
+  int id = await helper.insertRoutineEntry(routineEntry);
+  routineEntry.id = id;
+
+  log('inserted row: $id');
+}
+
+_deleteRoutineEntry(int _id) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+
+  int id = await helper.deleteRoutineEntry(_id);
+
+  log('deleted row: $id');
+}
+
+_updateRoutineEntry(RoutineEntry routineEntry) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  log('updating row: ${routineEntry.id.toString()}');
+  int id = await helper.updateRoutineEntry(routineEntry);
+
+  log('updated row: $id');
+}
+
+Future<List<RoutineEntry>?> _routineEntryByRoutine(int id) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<RoutineEntry>? workouts = await helper.queryRoutineEntriesByRoutine(id);
+  if (workouts == null) {
+    log('read row $id: empty');
+    return null;
+  } else {
+    log('read row $id: $workouts');
+    return workouts;
   }
 }
 

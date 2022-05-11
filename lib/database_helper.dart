@@ -25,7 +25,7 @@ const String tableRoutine = 'Routine';
 //workout routine entry columns
 const String tableRoutineEntry = "RoutineEntry";
 const String columnRoutineId = 'routineId';
-const String columnOrder = "order";
+const String columnOrder = "entryOrder";
 
 //class object for saving workout routines
 class WorkoutHistory {
@@ -259,6 +259,7 @@ class DatabaseHelper {
               CREATE TABLE $tableRoutineEntry (
                 $columnId INTEGER PRIMARY KEY,
                 $columnWorkoutName TEXT NOT NULL,
+                $columnOrder INTEGER NOT NULL,
                 $columnWorkoutId INTEGER NOT NULL,
                 $columnRoutineId INTEGER NOT NULL,
                 FOREIGN KEY($columnWorkoutId) REFERENCES $tableWorkout($columnId),
