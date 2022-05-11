@@ -85,15 +85,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           body: const TabBarView(
             children: <Widget>[
-              WorkoutPage(workout:null),
-              WorkoutTemplate(),
-              Align(
-                alignment: Alignment.center,
-                child: Text(
-                  'Routines Coming Soon',
-                  textAlign: TextAlign.center,
-                ),
-              ),
+              WorkoutHistoryPage(workout:null),
+              WorkoutPage(),
+              RoutinePage()
             ],
           ),
         ),
@@ -101,16 +95,16 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class WorkoutPage extends StatefulWidget {
+class WorkoutHistoryPage extends StatefulWidget {
   final Workout? workout;
-  const WorkoutPage({Key? key, required this.workout}) : super(key: key);
+  const WorkoutHistoryPage({Key? key, required this.workout}) : super(key: key);
   @override
-  State<WorkoutPage> createState() => _WorkoutPageState(workout: this.workout);
+  State<WorkoutHistoryPage> createState() => _WorkoutHistoryPageState(workout: this.workout);
 }
 
-class _WorkoutPageState extends State<WorkoutPage> {
+class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
   late Workout? workout;
-  _WorkoutPageState({required this.workout});
+  _WorkoutHistoryPageState({required this.workout});
 
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -118,28 +112,28 @@ class _WorkoutPageState extends State<WorkoutPage> {
   DateTimeRange? _selectedDateRange = todayRange();
 
   //list of all saved workout history
-  Future<List<WorkoutHistory>?> workout_history_list = _readAll();
+  Future<List<WorkoutHistory>?> workout_history_list = _readAllWorkoutHistory();
 
   //separate list is needed for filter
-  Future<List<WorkoutHistory>?> workout_history_list_filtered = _workoutsByDates(todayRange());
+  Future<List<WorkoutHistory>?> workout_history_list_filtered = _workoutHistoryByDates(todayRange());
 
   //list of all saved workout types
-  Future<List<Workout>?> workouts = _readAllTypes();
+  Future<List<Workout>?> workouts = _readAllWorkouts();
 
   //dropdown list is needed, adds an option for all
-  Future<List<Workout>?> workout_dropdown =_readAllTypesDropdown();
+  Future<List<Workout>?> workout_dropdown =_readAllWorkoutsDropdown();
 
 
   //index for position in their lists
   int filter_index = 0;
-  int types_index = 0;
+  int workout_index = 0;
 
   //function to update the type index for the dropdown
-  Future<int> UpdateIndex(newValue) async {
-    var types = await workouts;
-    for (var i = 0; i < types!.length; i++) {
-      if (newValue == types[i].name) {
-        types_index = i;
+  Future<int> updateWorkoutIndex(newValue) async {
+    var workoutsList = await workouts;
+    for (var i = 0; i < workoutsList!.length; i++) {
+      if (newValue == workoutsList[i].name) {
+        workout_index = i;
         log(i.toString());
         return i;
       }
@@ -165,9 +159,9 @@ class _WorkoutPageState extends State<WorkoutPage> {
       setState(() {
         _selectedDateRange = result;
         if(dropdown_list![filter_index].id == -1){
-          workout_history_list_filtered = _workoutsByDates(result);
+          workout_history_list_filtered = _workoutHistoryByDates(result);
         } else {
-          workout_history_list_filtered = _workoutsByTypeAndDates(dropdown_list[filter_index].id ,result);
+          workout_history_list_filtered = _workoutHistoryByWorkoutAndDates(dropdown_list[filter_index].id ,result);
         }
       });
     }
@@ -178,7 +172,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
     //if you navigated from the profile, pre filter the history by the id and range
     if(workout != null){
-      workout_history_list_filtered = _workoutsByTypeAndDates(workout!.id, _selectedDateRange!);
+      workout_history_list_filtered = _workoutHistoryByWorkoutAndDates(workout!.id, _selectedDateRange!);
     }
 
     Future<List<WorkoutHistory>?> getList(List<WorkoutHistory>? temp) async {
@@ -217,14 +211,14 @@ class _WorkoutPageState extends State<WorkoutPage> {
       //   results = getList(temp);
       // }
       var types = await workout_dropdown;
-      Future<List<WorkoutHistory>?> filtered_history;
+      Future<List<WorkoutHistory>?> filteredHistory;
       if (workoutId == -1) {
-        filtered_history = _workoutsByDates(_selectedDateRange!);
+        filteredHistory = _workoutHistoryByDates(_selectedDateRange!);
       } else {
         if(workout == null){
 
         } else {
-          filtered_history =  _workoutsByTypeAndDates(workout!.id, _selectedDateRange!);
+          filteredHistory =  _workoutHistoryByWorkoutAndDates(workout!.id, _selectedDateRange!);
         }
       }
       //Future<List<WorkoutHistory>?> filtered_history =  _workoutsByTypeAndDates(workout!.id, _selectedDateRange!);
@@ -235,9 +229,9 @@ class _WorkoutPageState extends State<WorkoutPage> {
         //workout_history_list_filtered = filtered_history;
 
         if (workoutId == -1) {
-          workout_history_list_filtered = _workoutsByDates(_selectedDateRange!);
+          workout_history_list_filtered = _workoutHistoryByDates(_selectedDateRange!);
         } else  {
-          workout_history_list_filtered = _workoutsByTypeAndDates(workoutId, _selectedDateRange!);
+          workout_history_list_filtered = _workoutHistoryByWorkoutAndDates(workoutId, _selectedDateRange!);
         }
 
         for (int i = 0; i < types!.length; i++) {
@@ -338,8 +332,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
             workoutHistory.sets = 0;
             workoutHistory.reps = 0;
             workoutHistory.weight = 0;
-            workoutHistory.typeId = 0;
-            types_index = 0;
+            workoutHistory.workoutId = 0;
+            workout_index = 0;
             if(workout == null){
               await AddWorkoutForm(context, true, workoutHistory, false);
             } else {
@@ -386,30 +380,23 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
   Future<void> AddWorkoutForm(
       BuildContext context, bool add, WorkoutHistory workoutHistory, bool hasContext) async {
-    List<Workout>? types = await _readAllTypes();
+    List<Workout>? types = await _readAllWorkouts();
     List<String> typesString = [];
     Workout curType = types![0];
-    // for (var i = 0; i < types.length; i++) {
-    //   typesString.add(types[i].type);
-    //   if (workout.typeId == types[i].id) {
-    //     types_index = i;
-    //     curType = types[i];
-    //   }
-    // }
 
     if(workout != null){
       for (var i = 0; i < types.length; i++) {
         typesString.add(types[i].name);
         if (workout!.id == types[i].id) {
-          types_index = i;
+          workout_index = i;
         }
       }
       curType = workout!;
     } else {
       for (var i = 0; i < types.length; i++) {
         typesString.add(types[i].name);
-        if (workoutHistory.typeId == types[i].id) {
-          types_index = i;
+        if (workoutHistory.workoutId == types[i].id) {
+          workout_index = i;
           curType = types[i];
         }
       }
@@ -450,7 +437,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                               ignoring: !add || hasContext,
                               child: DropdownButton<String>(
                                 isExpanded: true,
-                                value: projectSnap.data![types_index].name,
+                                value: projectSnap.data![workout_index].name,
                                 icon: add ? Icon(Icons.arrow_drop_down) : Icon(null),
                                 elevation: 16,
                                 style: add ? TextStyle(color: Colors.white) : TextStyle(color: Colors.grey),
@@ -459,7 +446,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                                   color: Colors.white,
                                 ),
                                 onChanged: (String? newValue) async {
-                                  int i = await UpdateIndex(newValue);
+                                  int i = await updateWorkoutIndex(newValue);
                                   setState(() {
                                     routineController.text = newValue!;
                                     //UpdateIndex(newValue);
@@ -603,7 +590,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       workoutHistory.reps = int.parse(repController.text.isEmpty ? "0" : repController.text);
                       workoutHistory.weight = double.parse(weightController.text.isEmpty ? "0" : weightController.text);
                       workoutHistory.timer = double.parse(timerController.text.isEmpty ? "0" : timerController.text);
-                      _update(workoutHistory);
+                      _updateWorkoutHistory(workoutHistory);
                     } else {
                       int typeId = -1;
                       int workoutType = -1;
@@ -613,7 +600,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                           workoutType = types[i].type;
                         }
                       }
-                      _save(
+                      _saveWorkoutHistory(
                           routineController.text,
                           workoutType,
                           myDateTime,
@@ -624,7 +611,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                           typeId);
                     }
                     setState(() {
-                      workout_history_list_filtered = _readAll();
+                      workout_history_list_filtered = _readAllWorkoutHistory();
                       workout_history_list = workout_history_list_filtered;
                       filter_index = 0;
                     });
@@ -644,7 +631,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
   Widget buildWorkoutCard(BuildContext context, workoutHistory, types) {
     WorkoutType? cat = null;
     for (var i = 0; i < types.length; i++) {
-      if (workoutHistory.typeId == types[i].id) {
+      if (workoutHistory.workoutId == types[i].id) {
         cat = WorkoutType.values[types[i].type];
         log(workoutTypeString(cat));
       }
@@ -660,9 +647,9 @@ class _WorkoutPageState extends State<WorkoutPage> {
                 await AddWorkoutForm(context, false, workoutHistory, true);
               },
               onLongPress: () async {
-                await _delete(workoutHistory.id);
+                await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
-                  workout_history_list_filtered = _readAll();
+                  workout_history_list_filtered = _readAllWorkoutHistory();
                   workout_history_list = workout_history_list_filtered;
                 });
               },
@@ -712,9 +699,9 @@ class _WorkoutPageState extends State<WorkoutPage> {
                 await AddWorkoutForm(context, false, workoutHistory, true);
               },
               onLongPress: () async {
-                await _delete(workoutHistory.id);
+                await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
-                  workout_history_list_filtered = _readAll();
+                  workout_history_list_filtered = _readAllWorkoutHistory();
                   workout_history_list = workout_history_list_filtered;
                 });
               },
@@ -761,9 +748,9 @@ class _WorkoutPageState extends State<WorkoutPage> {
                 await AddWorkoutForm(context, false, workoutHistory, true);
               },
               onLongPress: () async {
-                await _delete(workoutHistory.id);
+                await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
-                  workout_history_list_filtered = _readAll();
+                  workout_history_list_filtered = _readAllWorkoutHistory();
                   workout_history_list = workout_history_list_filtered;
                 });
               },
@@ -806,18 +793,18 @@ class _WorkoutPageState extends State<WorkoutPage> {
   }
 }
 
-class WorkoutTemplate extends StatefulWidget {
-  const WorkoutTemplate({Key? key}) : super(key: key);
+class WorkoutPage extends StatefulWidget {
+  const WorkoutPage({Key? key}) : super(key: key);
   //Workout(key) : super(key: key);
   @override
-  State<WorkoutTemplate> createState() => _WorkoutTemplateState();
+  State<WorkoutPage> createState() => _WorkoutPageState();
 }
 
-class _WorkoutTemplateState extends State<WorkoutTemplate> {
+class _WorkoutPageState extends State<WorkoutPage> {
   //List<WorkoutRoutine>? workouts =  _getAll();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  Future<List<Workout>?> workout_type = _readAllTypes();
+  Future<List<Workout>?> workouts = _readAllWorkouts();
 
   @override
   Widget build(BuildContext context) {
@@ -830,7 +817,7 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
         children: [
           Expanded(
             child: FutureBuilder<List<Workout>?>(
-              future: workout_type,
+              future: workouts,
               builder: (context, projectSnap) {
                 if (projectSnap.hasData) {
                   return ListView.builder(
@@ -967,16 +954,16 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
                     if (!add) {
                       type.name = typeController.text;
                       type.type = categoryController!;
-                      _updateType(type);
-                      _updateWorkoutsByType(type.id, typeController.text);
+                      _updateWorkout(type);
+                      _updateWorkoutHistoryByWorkout(type.id, typeController.text);
                     } else {
-                      _saveType(
+                      _saveWorkout(
                         typeController.text,
                         categoryController!,
                       );
                     }
                     setState(() {
-                      workout_type = _readAllTypes();
+                      workouts = _readAllWorkouts();
                     });
 
                     Navigator.of(context).pop();
@@ -1035,7 +1022,7 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
                   child: Text('Update'),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    List<WorkoutHistory>? workoutsForType =  await _workoutsByType(type.id);
+                    List<WorkoutHistory>? workoutsForType =  await _workoutHistoryByWorkout(type.id);
                     if(workoutsForType == null){
                       await AddTypeForm(context, false, false, type.type, type);
                     } else {
@@ -1048,14 +1035,14 @@ class _WorkoutTemplateState extends State<WorkoutTemplate> {
                   child: Text('Delete'),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    List<WorkoutHistory>? workoutsForType =  await _workoutsByType(type.id);
+                    List<WorkoutHistory>? workoutsForType =  await _workoutHistoryByWorkout(type.id);
                     if(workoutsForType == null){
-                      await _deleteType(type.id);
+                      await _deleteWorkout(type.id);
                     } else {
                       return cantDeleteAlert();
                     }
                     setState(() {
-                      workout_type = _readAllTypes();
+                      workouts = _readAllWorkouts();
                     });
                   },
                 ),
@@ -1161,7 +1148,7 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
           ),
           body: TabBarView(
             children: <Widget>[
-              WorkoutPage(workout: type,),
+              WorkoutHistoryPage(workout: type,),
               const Align(
                 alignment: Alignment.center,
                 child: Text(
@@ -1176,9 +1163,235 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
   }
 }
 
-_saveType(String type, int wRequired) async {
+class RoutinePage extends StatefulWidget {
+  const RoutinePage({Key? key}) : super(key: key);
+
+  @override
+  State<RoutinePage> createState() => _RoutinePageState();
+}
+
+class _RoutinePageState extends State<RoutinePage> {
+  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  Future<List<Routine>?> routines = _readAllRoutines();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: const Drawer(),
+      body: Container(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: FutureBuilder<List<Routine>?>(
+                  future: routines,
+                  builder: (context, projectSnap) {
+                    if (projectSnap.hasData) {
+                      return ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 100),
+                          itemCount: projectSnap.data?.length,
+                          itemBuilder: (BuildContext context, int index) =>
+                              buildRoutineCard(context, index, projectSnap.data));
+                    } else {
+                      return const Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          'No Routines',
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              )
+            ],
+          )),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          //Navigator.push( context, MaterialPageRoute( builder: (context) => Workout()), ).then((value) => setState(() {}));
+          Routine routine = Routine();
+          routine.name = "";
+          routine.date = DateTime.now().toString();
+          await AddRoutineForm(context, true, routine);
+        },
+        tooltip: 'Add Routine',
+        child: const Icon(Icons.add),
+        backgroundColor: Colors.white,
+      ),
+    );
+  }
+
+
+  Future<void> AddRoutineForm(
+      BuildContext context, bool add, Routine routine) async {
+    TextEditingController routineController =
+    TextEditingController(text: routine.name);
+    return await showDialog(
+      context: context,
+      builder: (context) {
+        return SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: AlertDialog(
+            scrollable: true,
+            content: StatefulBuilder(
+                builder: (context, setState) {
+                  return Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: routineController,
+                          validator: (value) {
+                            return value!.isNotEmpty ? null : "Empty";
+                          },
+                          decoration: const InputDecoration(hintText: "Routine"),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    if (!add) {
+                      routine.name = routineController.text;
+                      routine.date = DateTime.now().toString();
+                      _updateRoutine(routine);
+                      //_updateWorkoutHistoryByWorkout(type.id, routineController.text);
+                    } else {
+                      _saveRoutine(
+                        routineController.text,
+                        DateTime.now(),
+                      );
+                    }
+                    setState(() {
+                      routines = _readAllRoutines();
+                    });
+
+                    Navigator.of(context).pop();
+                    //(context as Element).reassemble();
+                  }
+                },
+                child: const Text("Save"),
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> updateOptions(Routine routine) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          //title: const Text('Can Not Delete'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                const Divider(),
+                TextButton(
+                  child: Text('Update'),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    AddRoutineForm(context, false, routine);
+                  },
+                ),
+                const Divider(),
+                TextButton(
+                  child: Text('Delete'),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    //delete routine and all entries
+                    setState(() {
+                      routines = _readAllRoutines();
+                    });
+                  },
+                ),
+                const Divider(),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
+  Widget buildRoutineCard(BuildContext context, int index, curRoutines) {
+    return Container(
+      margin: const EdgeInsets.all(0),
+      //height: 42,
+      child: Card(
+        child: ListTile(
+          onTap: () async {
+            // Navigator.push(context,
+            //     MaterialPageRoute(builder: (context) => RoutineProfile( routine: curRoutines![index])));
+          },
+          onLongPress: () async {
+            return updateOptions(curRoutines[index]);
+          },
+          title: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Text('${curRoutines![index].name} '),
+                    const Spacer(),
+                    Text('last completed on ${DateFormat('yyyy/MM/dd') // hh:mm a
+                        .format(DateTime.parse(curRoutines![index].date))} ',
+                      style: const TextStyle(fontSize: 10),
+                    )
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class RoutineProfile extends StatefulWidget {
+  const RoutineProfile({Key? key}) : super(key: key);
+
+  @override
+  State<RoutineProfile> createState() => _RoutineProfileState();
+}
+
+class _RoutineProfileState extends State<RoutineProfile> {
+  @override
+  Widget build(BuildContext context) {
+    return Container();
+  }
+}
+
+_saveWorkout(String workout, int wRequired) async {
   Workout wType = Workout();
-  wType.name = type;
+  wType.name = workout;
   wType.type = wRequired;
   DatabaseHelper helper = DatabaseHelper.instance;
   int id = await helper.insertWorkout(wType);
@@ -1187,7 +1400,7 @@ _saveType(String type, int wRequired) async {
   log('inserted row: $id');
 }
 
-_deleteType(int _id) async {
+_deleteWorkout(int _id) async {
   DatabaseHelper helper = DatabaseHelper.instance;
 
   int id = await helper.deleteWorkout(_id);
@@ -1195,15 +1408,15 @@ _deleteType(int _id) async {
   log('deleted row: $id');
 }
 
-_updateType(Workout type) async {
+_updateWorkout(Workout workout) async {
   DatabaseHelper helper = DatabaseHelper.instance;
-  log('updating row: ${type.id.toString()}');
-  int id = await helper.updateWorkout(type);
+  log('updating row: ${workout.id.toString()}');
+  int id = await helper.updateWorkout(workout);
 
   log('updated row: $id');
 }
 
-Future<Workout?> _readType(int rowId) async {
+Future<Workout?> _readWorkout(int rowId) async {
   DatabaseHelper helper = DatabaseHelper.instance;
   Workout? workout = await helper.queryWorkout(rowId);
   if (workout == null) {
@@ -1215,20 +1428,58 @@ Future<Workout?> _readType(int rowId) async {
   }
 }
 
-Future<List<Workout>?> _readAllTypes() async {
+Future<List<Workout>?> _readAllWorkouts() async {
   DatabaseHelper helper = DatabaseHelper.instance;
-  int rowId = 1;
   List<Workout>? workouts = await helper.queryAllWorkouts();
   if (workouts == null) {
-    log('read row $rowId: empty');
+    log('read row empty');
     return null;
   } else {
-    log('read row $rowId: $workouts');
+    log('read row: $workouts');
     return workouts;
   }
 }
 
-Future<List<Workout>?> _readAllTypesDropdown() async {
+_saveRoutine(String name, DateTime date) async {
+  Routine routine = Routine();
+  routine.name = name;
+  routine.date = date.toString();
+  DatabaseHelper helper = DatabaseHelper.instance;
+  int id = await helper.insertRoutine(routine);
+  routine.id = id;
+
+  log('inserted row: $id');
+}
+
+_deleteRoutine(int _id) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+
+  int id = await helper.deleteRoutine(_id);
+
+  log('deleted row: $id');
+}
+
+_updateRoutine(Routine routine) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  log('updating row: ${routine.id.toString()}');
+  int id = await helper.updateRoutine(routine);
+
+  log('updated row: $id');
+}
+
+Future<List<Routine>?> _readAllRoutines() async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<Routine>? routines = await helper.queryAllRoutines();
+  if (routines == null) {
+    log('read row empty');
+    return null;
+  } else {
+    log('read row: $routines');
+    return routines;
+  }
+}
+
+Future<List<Workout>?> _readAllWorkoutsDropdown() async {
   DatabaseHelper helper = DatabaseHelper.instance;
   int rowId = 1;
   List<Workout>? workouts = await helper.queryAllWorkouts();
@@ -1246,17 +1497,17 @@ Future<List<Workout>?> _readAllTypesDropdown() async {
   }
 }
 
-_save(String routine, int type, DateTime date, int sets, int reps, double weight,
-    double timer, int typeId) async {
+_saveWorkoutHistory(String workoutName, int type, DateTime date, int sets, int reps, double weight,
+    double timer, int workoutId) async {
   WorkoutHistory workout = WorkoutHistory();
-  workout.workoutName = routine;
+  workout.workoutName = workoutName;
   workout.workoutType = type;
   workout.date = date.toString();
   workout.sets = sets;
   workout.reps = reps;
   workout.weight = weight;
   workout.timer = timer;
-  workout.typeId = typeId;
+  workout.workoutId = workoutId;
 
   DatabaseHelper helper = DatabaseHelper.instance;
 
@@ -1266,7 +1517,7 @@ _save(String routine, int type, DateTime date, int sets, int reps, double weight
   log('inserted row: $id');
 }
 
-_delete(int _id) async {
+_deleteWorkoutHistory(int _id) async {
   DatabaseHelper helper = DatabaseHelper.instance;
 
   int id = await helper.deleteWorkoutHistory(_id);
@@ -1274,7 +1525,7 @@ _delete(int _id) async {
   log('deleted row: $id');
 }
 
-_update(WorkoutHistory workout) async {
+_updateWorkoutHistory(WorkoutHistory workout) async {
   DatabaseHelper helper = DatabaseHelper.instance;
   log('updating row: ${workout.id.toString()}');
   int id = await helper.updateWorkoutHistory(workout);
@@ -1282,7 +1533,7 @@ _update(WorkoutHistory workout) async {
   log('updated row: $id');
 }
 
-Future<List<WorkoutHistory>?> _readAll() async {
+Future<List<WorkoutHistory>?> _readAllWorkoutHistory() async {
   DatabaseHelper helper = DatabaseHelper.instance;
   int rowId = 1;
   List<WorkoutHistory>? workouts = await helper.queryAllWorkoutHistory();
@@ -1298,9 +1549,9 @@ Future<List<WorkoutHistory>?> _readAll() async {
   }
 }
 
-Future<List<WorkoutHistory>?> _workoutsByType(int id) async {
+Future<List<WorkoutHistory>?> _workoutHistoryByWorkout(int id) async {
   DatabaseHelper helper = DatabaseHelper.instance;
-  List<WorkoutHistory>? workouts = await helper.queryWorkoutHistoryByType(id);
+  List<WorkoutHistory>? workouts = await helper.queryWorkoutHistoryByWorkout(id);
   if (workouts == null) {
     log('read row $id: empty');
     return null;
@@ -1310,9 +1561,9 @@ Future<List<WorkoutHistory>?> _workoutsByType(int id) async {
   }
 }
 
-Future<List<WorkoutHistory>?> _workoutsByTypeAndDates(int id, DateTimeRange range) async {
+Future<List<WorkoutHistory>?> _workoutHistoryByWorkoutAndDates(int id, DateTimeRange range) async {
   DatabaseHelper helper = DatabaseHelper.instance;
-  List<WorkoutHistory>? workouts = await helper.queryWorkoutHistoryByType(id);
+  List<WorkoutHistory>? workouts = await helper.queryWorkoutHistoryByWorkout(id);
   if (workouts == null) {
     log('read row $id: empty');
     return null;
@@ -1335,7 +1586,7 @@ Future<List<WorkoutHistory>?> _workoutsByTypeAndDates(int id, DateTimeRange rang
   }
 }
 
-Future<List<WorkoutHistory>?> _workoutsByDates(DateTimeRange range) async {
+Future<List<WorkoutHistory>?> _workoutHistoryByDates(DateTimeRange range) async {
   DatabaseHelper helper = DatabaseHelper.instance;
   List<WorkoutHistory>? workouts = await helper.queryAllWorkoutHistory();
   if (workouts == null) {
@@ -1354,9 +1605,9 @@ Future<List<WorkoutHistory>?> _workoutsByDates(DateTimeRange range) async {
   }
 }
 
-Future<List<WorkoutHistory>?> _updateWorkoutsByType(int id, String workoutName) async {
+Future<List<WorkoutHistory>?> _updateWorkoutHistoryByWorkout(int id, String workoutName) async {
   DatabaseHelper helper = DatabaseHelper.instance;
-  List<WorkoutHistory>? workouts = await helper.queryWorkoutHistoryByType(id);
+  List<WorkoutHistory>? workouts = await helper.queryWorkoutHistoryByWorkout(id);
   if (workouts == null) {
     log('read row $id: empty');
     return null;
