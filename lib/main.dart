@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:developer';
 import 'database_helper.dart';
+import 'package:modal_progress_hud/modal_progress_hud.dart';
 //import 'package:mdi/mdi.dart';
 
 void main() {
@@ -776,9 +777,9 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                       padding: const EdgeInsets.all(8.0),
                       child: Row(
                         children: [
-                          Text('Duration: ${workoutHistory.cardio.toString()}'),
+                          Text('Duration: ${workoutHistory.timer.toString()}'),
                           const Spacer(),
-                          Text('${workoutHistory.strength.toString()} LBS'),
+                          Text('${workoutHistory.weight.toString()} LBS'),
                         ],
                       ),
                     ),
@@ -802,9 +803,11 @@ class WorkoutPage extends StatefulWidget {
 
 class _WorkoutPageState extends State<WorkoutPage> {
   //List<WorkoutRoutine>? workouts =  _getAll();
-  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   Future<List<Workout>?> workouts = _readAllWorkouts();
+  bool inAsyncCall = false;
+  bool isInvalidName = false;
 
   @override
   Widget build(BuildContext context) {
@@ -868,111 +871,151 @@ class _WorkoutPageState extends State<WorkoutPage> {
     );
   }
 
+  String? nameValidator(String? name) {
+    if(name!.isEmpty) {return "Empty";}
+
+    if(isInvalidName){
+      isInvalidName = false;
+      return "duplicate name $name";
+    }
+
+    return null;
+  }
+
   Future<void> AddTypeForm(
       BuildContext context, bool add, bool lock, int category, Workout type) async {
     TextEditingController typeController =
         TextEditingController(text: type.name);
+
+    //run validators on reload
+
+
     // TextEditingController categoryController = TextEditingController(
     //     text: add ? "Yes" : (type.workoutEnum == 1 ? "Yes" : "No"));
     int? categoryController = category;
     return await showDialog(
       context: context,
       builder: (context) {
-        return SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: AlertDialog(
-            scrollable: true,
-            content: StatefulBuilder(
-              builder: (context, setState) {
-                return Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: typeController,
-                        validator: (value) {
-                          return value!.isNotEmpty ? null : "Empty";
-                        },
-                        decoration: const InputDecoration(hintText: "Workout"),
-                      ),
-                      RadioListTile<int>(
-                        value: WorkoutType.strength.index,
-                        groupValue: categoryController,
-                        title: Text("Strength"),
-                        onChanged: lock ? null : (value) {
+        return ModalProgressHUD(
+          opacity: .5,
+          progressIndicator: CircularProgressIndicator(),
+          inAsyncCall: inAsyncCall,
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: StatefulBuilder(
+              builder: (context, setNewState) {
+                _formKey.currentState?.validate();
+                return AlertDialog(
+                  scrollable: true,
+                  content: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextFormField(
+                              controller: typeController,
+                              validator: nameValidator,
+                              decoration: const InputDecoration(hintText: "Workout"),
+                            ),
+                            RadioListTile<int>(
+                              value: WorkoutType.strength.index,
+                              groupValue: categoryController,
+                              title: Text("Strength"),
+                              onChanged: lock ? null : (value) {
 
-                          setState(() {
-                            categoryController = WorkoutType.strength.index;
-                            log(categoryController.toString());
-                          });
-                        },
-                        activeColor: Colors.green,
-                        toggleable: true,
-                      ),
-                      RadioListTile<int>(
-                        value: WorkoutType.cardio.index,
-                        groupValue: categoryController,
-                        title: Text("Cardio"),
-                        onChanged: lock ? null : (value) {
-                          setState(() {
-                            categoryController = WorkoutType.cardio.index;
-                            log(categoryController.toString());
-                          });
-                        },
-                        activeColor: Colors.green,
-                        toggleable: true,
-                      ),
-                      RadioListTile<int>(
-                        value: WorkoutType.both.index,
-                        groupValue: categoryController,
-                        title: Text("Both"),
-                        onChanged: lock ? null :  (value) {
-                          setState(() {
-                            categoryController = WorkoutType.both.index;
-                            log(categoryController.toString());
-                          });
-                        },
-                        activeColor: Colors.green,
-                        toggleable: true,
-                      ),
-                    ],
+                                setNewState(() {
+                                  categoryController = WorkoutType.strength.index;
+                                  log(categoryController.toString());
+                                });
+                              },
+                              activeColor: Colors.green,
+                              toggleable: true,
+                            ),
+                            RadioListTile<int>(
+                              value: WorkoutType.cardio.index,
+                              groupValue: categoryController,
+                              title: Text("Cardio"),
+                              onChanged: lock ? null : (value) {
+                                setNewState(() {
+                                  categoryController = WorkoutType.cardio.index;
+                                  log(categoryController.toString());
+                                });
+                              },
+                              activeColor: Colors.green,
+                              toggleable: true,
+                            ),
+                            RadioListTile<int>(
+                              value: WorkoutType.both.index,
+                              groupValue: categoryController,
+                              title: Text("Both"),
+                              onChanged: lock ? null :  (value) {
+                                setNewState(() {
+                                  categoryController = WorkoutType.both.index;
+                                  log(categoryController.toString());
+                                });
+                              },
+                              activeColor: Colors.green,
+                              toggleable: true,
+                            ),
+                          ],
+                        ),
                   ),
+                  actions: <Widget>[
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text("Cancel"),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+
+                        if (_formKey.currentState!.validate()) {
+                          _formKey.currentState!.save();
+                          setNewState(() {
+                            inAsyncCall = true;
+                          });
+                          // dismiss keyboard during async call
+                          FocusScope.of(context).requestFocus(new FocusNode());
+
+                          bool isDupe = await _workoutNameExists(typeController.text);
+
+                          setNewState(() {
+                            if(isDupe){
+                              isInvalidName = true;
+                            } else {
+                              isInvalidName = false;
+                            }
+                            inAsyncCall = false;
+                          });
+                          if(!isInvalidName){
+                            if (!add) {
+                              type.name = typeController.text;
+                              type.type = categoryController!;
+                              _updateWorkout(type);
+                              _updateWorkoutHistoryByWorkout(type.id, typeController.text);
+                            } else {
+                              _saveWorkout(
+                                typeController.text,
+                                categoryController!,
+                              );
+                            }
+                            setState(() {
+                              workouts = _readAllWorkouts();
+                            });
+
+                            Navigator.of(context).pop();
+                          }
+
+                          //(context as Element).reassemble();
+                        }
+                      },
+                      child: const Text("Save"),
+                    )
+                  ],
                 );
               }
             ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    if (!add) {
-                      type.name = typeController.text;
-                      type.type = categoryController!;
-                      _updateWorkout(type);
-                      _updateWorkoutHistoryByWorkout(type.id, typeController.text);
-                    } else {
-                      _saveWorkout(
-                        typeController.text,
-                        categoryController!,
-                      );
-                    }
-                    setState(() {
-                      workouts = _readAllWorkouts();
-                    });
-
-                    Navigator.of(context).pop();
-                    //(context as Element).reassemble();
-                  }
-                },
-                child: const Text("Save"),
-              )
-            ],
           ),
         );
       },
@@ -1174,6 +1217,8 @@ class _RoutinePageState extends State<RoutinePage> {
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   Future<List<Routine>?> routines = _readAllRoutines();
+  bool inAsyncCall = false;
+  bool isInvalidName = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1222,6 +1267,16 @@ class _RoutinePageState extends State<RoutinePage> {
     );
   }
 
+  String? nameValidator(String? name) {
+    if(name!.isEmpty) {return "Empty";}
+
+    if(isInvalidName){
+      isInvalidName = false;
+      return "duplicate name $name";
+    }
+
+    return null;
+  }
 
   Future<void> AddRoutineForm(
       BuildContext context, bool add, Routine routine) async {
@@ -1230,61 +1285,86 @@ class _RoutinePageState extends State<RoutinePage> {
     return await showDialog(
       context: context,
       builder: (context) {
-        return SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: AlertDialog(
-            scrollable: true,
-            content: StatefulBuilder(
-                builder: (context, setState) {
-                  return Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextFormField(
-                          controller: routineController,
-                          validator: (value) {
-                            return value!.isNotEmpty ? null : "Empty";
-                          },
-                          decoration: const InputDecoration(hintText: "Routine"),
+        return ModalProgressHUD(
+          opacity: .5,
+          progressIndicator: CircularProgressIndicator(),
+          inAsyncCall: inAsyncCall,
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: StatefulBuilder(
+              builder: (context, setNewState) {
+                _formKey.currentState?.validate();
+                return AlertDialog(
+                  scrollable: true,
+                  content: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextFormField(
+                                controller: routineController,
+                                validator: nameValidator,
+                                decoration: const InputDecoration(hintText: "Routine"),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                  );
-                }
-            ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    if (!add) {
-                      routine.name = routineController.text;
-                      routine.date = DateTime.now().toString();
-                      _updateRoutine(routine);
-                      //_updateWorkoutHistoryByWorkout(type.id, routineController.text);
-                    } else {
-                      _saveRoutine(
-                        routineController.text,
-                        DateTime.now(),
-                      );
-                    }
-                    setState(() {
-                      routines = _readAllRoutines();
-                    });
 
-                    Navigator.of(context).pop();
-                    //(context as Element).reassemble();
-                  }
-                },
-                child: const Text("Save"),
-              )
-            ],
+                  actions: <Widget>[
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text("Cancel"),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+
+                          if (_formKey.currentState!.validate()) {
+                            _formKey.currentState!.save();
+                            setNewState(() {
+                            inAsyncCall = true;
+                            });
+                            // dismiss keyboard during async call
+                            FocusScope.of(context).requestFocus(new FocusNode());
+
+                            bool isDupe = await _routineNameExists(routineController.text);
+
+                            setNewState(() {
+                            if(isDupe){
+                            isInvalidName = true;
+                            } else {
+                            isInvalidName = false;
+                            }
+                            inAsyncCall = false;
+                            });
+                            if(!isInvalidName) {
+                              if (!add) {
+                                routine.name = routineController.text;
+                                routine.date = DateTime.now().toString();
+                                _updateRoutine(routine);
+                                //_updateWorkoutHistoryByWorkout(type.id, routineController.text);
+                              } else {
+                                _saveRoutine(
+                                  routineController.text,
+                                  DateTime(0),
+                                );
+                              }
+                              setState(() {
+                                routines = _readAllRoutines();
+                              });
+
+                              Navigator.of(context).pop();
+                            }
+                          //(context as Element).reassemble();
+                        }
+                      },
+                      child: const Text("Save"),
+                    )
+                  ],
+                );
+              }
+            ),
           ),
         );
       },
@@ -1315,6 +1395,12 @@ class _RoutinePageState extends State<RoutinePage> {
                   onPressed: () async {
                     Navigator.of(context).pop();
                     //delete routine and all entries
+
+                    var allEntries = await _routineEntryByRoutine(routine.id);
+                    for (var element in allEntries!) {
+                      _deleteRoutineEntry(element.id);
+                    }
+                    _deleteRoutine(routine.id);
                     setState(() {
                       routines = _readAllRoutines();
                     });
@@ -1360,7 +1446,8 @@ class _RoutinePageState extends State<RoutinePage> {
                   children: [
                     Text('${curRoutines![index].name} '),
                     const Spacer(),
-                    Text('last completed on ${DateFormat('yyyy/MM/dd') // hh:mm a
+                    Text(DateTime.parse(curRoutines![index].date) == DateTime(0) ?
+                    'Never Ran' : 'last completed on ${DateFormat('yyyy/MM/dd') // hh:mm a
                         .format(DateTime.parse(curRoutines![index].date))} ',
                       style: const TextStyle(fontSize: 10),
                     )
@@ -1389,6 +1476,10 @@ class _RoutineProfileState extends State<RoutineProfile> {
   late Routine routine;
   _RoutineProfileState({required this.routine});
 
+  List<GlobalKey<FormState>> formKeys = [];
+  List<bool> cardsCompleted = [];
+  late Future<List<Workout>?> workouts;
+
   Widget OrderedWorkoutList(){
     Future<List<RoutineEntry>?> routineEntries = _routineEntryByRoutine(routine.id);
     return Scaffold(
@@ -1397,13 +1488,30 @@ class _RoutineProfileState extends State<RoutineProfile> {
         builder: (context,AsyncSnapshot<List<RoutineEntry>?> snapshot) {
           if(snapshot.hasData){
             return ReorderableListView(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
+              //padding: const EdgeInsets.all(8.0),
               children: <Widget>[
                 for (int index = 0; index < snapshot.data!.length; index += 1)
-                  ListTile(
-                    key: Key('$index'),
-                    tileColor: Colors.black12,
-                    title: Text('Item ${snapshot.data![index].workoutName}'),
+                  Dismissible(
+                    key: UniqueKey(),
+                    background: Container(color: Colors.redAccent),
+                    onDismissed: (direction) {
+                      setState(() {
+                        final RoutineEntry item = snapshot.data!.removeAt(index);
+                        _deleteRoutineEntry(item.id);
+                        for (var element in snapshot.data!) {
+                          element.order = snapshot.data!.indexOf(element);
+                          _updateRoutineEntry(element);
+                        }
+                        routineEntries = _routineEntryByRoutine(routine.id);
+                      });
+                    },
+                    child: Card(
+                      child: ListTile(
+                        trailing: Icon(Icons.drag_handle_outlined),
+                        tileColor: Colors.black12,
+                        title: Text('${snapshot.data![index].workoutName}'),
+                      ),
+                    ),
                   ),
               ],
               onReorder: (int oldIndex, int newIndex) {
@@ -1413,7 +1521,11 @@ class _RoutineProfileState extends State<RoutineProfile> {
                   }
                   final RoutineEntry item = snapshot.data!.removeAt(oldIndex);
                   snapshot.data!.insert(newIndex, item);
-                  //need to update the order values here
+
+                  for (var element in snapshot.data!) {
+                    element.order = snapshot.data!.indexOf(element);
+                    _updateRoutineEntry(element);
+                  }
                 });
               },
             );
@@ -1513,59 +1625,244 @@ class _RoutineProfileState extends State<RoutineProfile> {
     );
   }
 
+  Widget ExecuteWorkoutEntries(BuildContext context) {
+    //Future<List<RoutineEntry>?> routineEntries = _routineEntryByRoutine(routine.id);
+    workouts = _workoutsByRoutine(routine.id);
+
+    formKeys = [];
+    cardsCompleted = [];
+    //need to get the workouts from the entries in order, then construct a list of execute workout cards
+    //no clue how to indicate that all of them are done
+
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(
+          routine.name,
+          textAlign: TextAlign.center,
+        ),
+        // actions: [
+        //   IconButton(
+        //       onPressed: () async {
+        //         Navigator.push(context,
+        //             MaterialPageRoute(builder: (context) => ExecuteWorkoutEntries(context)));
+        //       },
+        //       icon: Icon(Icons.save)
+        //   )
+        // ],
+      ),
+      body: Container(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: FutureBuilder<List<Workout>?>(
+                  future: workouts,
+                  builder: (context, projectSnap) {
+                    if (projectSnap.hasData) {
+                      for(int i = 0; i < projectSnap.data!.length; i++){
+                        formKeys.add(GlobalKey<FormState>());
+                        cardsCompleted.add(false);
+                      }
+                      log(cardsCompleted.toString());
+                      return ListView.builder(
+                          padding: const EdgeInsets.only(
+                              bottom: 10,
+                              top: 10
+                          ),
+                          itemCount: projectSnap.data?.length,
+                          itemBuilder: (BuildContext context, int index) =>
+                              ExecuteWorkoutCard(projectSnap.data![index], index));
+                    } else {
+                      return const Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          'No Routines',
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              )
+            ],
+          ),
+        ),
+    );
+  }
+
+  Widget ExecuteWorkoutCard(Workout workout, int index){
+    TextEditingController weightController =
+    TextEditingController();
+    TextEditingController timerController =
+    TextEditingController();
+    TextEditingController setController =
+    TextEditingController();
+    TextEditingController repController =
+    TextEditingController();
+    return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+        return Card(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: formKeys[index],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    workout.name,
+                    textAlign: TextAlign.center,
+                  ),
+                  Divider(),
+                  if(cardsCompleted[index])
+                      Text("Completed")
+                  else
+                    SizedBox.shrink(),
+                    Visibility(
+                      visible: (workout.type == WorkoutType.strength.index ||
+                          workout.type == WorkoutType.both.index) && !cardsCompleted[index],
+                      child: TextFormField(
+                        controller: weightController,
+                        validator: (value) {
+                          return value!.isNotEmpty ? null : "Empty";
+                        },
+                        decoration: const InputDecoration(
+                            hintText: "Weight",
+                            labelText: "Weight *"
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                        ],
+                      ),
+                    ),
+                    Visibility(
+                      visible: (workout.type == WorkoutType.cardio.index ||
+                          workout.type == WorkoutType.both.index) && !cardsCompleted[index],
+                      child: TextFormField(
+                        controller: timerController,
+                        validator: (value) {
+                          return value!.isNotEmpty ? null : "Empty";
+                        },
+                        decoration: const InputDecoration(
+                            hintText: "Duration",
+                            labelText: "Duration *"
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                        ],
+                      ),
+                    ),
+                    Visibility(
+                      visible: workout.type == WorkoutType.strength.index && !cardsCompleted[index],
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              width: 50,
+                              child: TextFormField(
+                                controller: setController,
+                                validator: (value) {
+                                  return value!.isNotEmpty ? null : "Empty";
+                                },
+                                decoration:
+                                const InputDecoration(
+                                    hintText: "Sets",
+                                    labelText: "Sets *"
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: <TextInputFormatter>[
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'[0-9]')),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 50,
+                              child: TextFormField(
+                                controller: repController,
+                                validator: (value) {
+                                  return value!.isNotEmpty ? null : "Empty";
+                                },
+                                decoration:
+                                const InputDecoration(
+                                    hintText: "Reps",
+                                    labelText: "Reps *"
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: <TextInputFormatter>[
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'[0-9]')),
+                                ],
+                              ),
+                            ),
+                          ],
+                      ),
+                    ),
+                    Visibility(
+                      visible: !cardsCompleted[index],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                              onPressed: () {
+                                if (formKeys[index].currentState!.validate()) {
+                                  _saveWorkoutHistory(
+                                  workout.name,
+                                  workout.type,
+                                  DateTime.now(),
+                                  int.parse(setController.text.isEmpty ? "0" : setController.text),
+                                  int.parse(repController.text.isEmpty ? "0" : repController.text),
+                                  double.parse(weightController.text.isEmpty ? "0" : weightController.text),
+                                  double.parse(timerController.text.isEmpty ? "0" : timerController.text) ,
+                                  workout.id);
+                                  setState(() {
+                                    cardsCompleted[index] = true;
+                                    workouts = _workoutsByRoutine(routine.id);
+                                  });
+
+                                  }
+                                },
+                              child: Text("Save")
+                          )
+                        ],
+                      ),
+                    )
+                ],
+              ),
+            ),
+          )
+        );
+      }
+    );
+  }
   @override
   Widget build(BuildContext context) {
     log("current routine is ${routine.name}");
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           centerTitle: true,
           title: Text(
             routine.name,
             textAlign: TextAlign.center,
           ),
-          bottom: const TabBar(tabs: <Widget>[
-            SizedBox(
-              height: 30.0,
-              child: Align(
-                alignment: Alignment.center,
-                child: Text(
-                  'Workouts',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 10),
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 30.0,
-              child: Align(
-                alignment: Alignment.center,
-                child: Text(
-                  'Metrics',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 10),
-                ),
-              ),
+          actions: [
+            IconButton(
+                onPressed: () async {
+                  Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => ExecuteWorkoutEntries(context)));
+                }, 
+                icon: Icon(Icons.play_arrow)
             )
-          ]),
-        ),
-        body: TabBarView(
-          children: <Widget>[
-            OrderedWorkoutList(),
-            const Align(
-              alignment: Alignment.center,
-              child: Text(
-                'Metrics Coming Soon',
-                textAlign: TextAlign.center,
-              ),
-            ),
           ],
         ),
-      ),
-    );
+        body: OrderedWorkoutList(),
+      );
   }
 }
+
 
 _saveWorkout(String workout, int wRequired) async {
   Workout wType = Workout();
@@ -1594,6 +1891,30 @@ _updateWorkout(Workout workout) async {
   log('updated row: $id');
 }
 
+Future<bool> _workoutNameExists(String name) async{
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<Workout>? workouts = await helper.queryAllWorkouts();
+
+  for (var workout in workouts!) {
+    if(workout.name.toLowerCase() == name.toLowerCase()){
+      return true;
+    }
+  }
+  return false;
+}
+
+Future<bool> _routineNameExists(String name) async{
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<Routine>? routines = await helper.queryAllRoutines();
+
+  for (var routine in routines!) {
+    if(routine.name.toLowerCase() == name.toLowerCase()){
+      return true;
+    }
+  }
+  return false;
+}
+
 Future<Workout?> _readWorkout(int rowId) async {
   DatabaseHelper helper = DatabaseHelper.instance;
   Workout? workout = await helper.queryWorkout(rowId);
@@ -1614,6 +1935,7 @@ Future<List<Workout>?> _readAllWorkouts() async {
     return null;
   } else {
     log('read row: $workouts');
+    workouts.sort((a, b) => a.name.compareTo(b.name));
     return workouts;
   }
 }
@@ -1653,6 +1975,7 @@ Future<List<Routine>?> _readAllRoutines() async {
     return null;
   } else {
     log('read row: $routines');
+    routines.sort((a, b) => a.name.compareTo(b.name));
     return routines;
   }
 }
@@ -1694,6 +2017,24 @@ Future<List<RoutineEntry>?> _routineEntryByRoutine(int id) async {
     return null;
   } else {
     log('read row $id: $workouts');
+    workouts.sort((a, b) => a.order.compareTo(b.order));
+    return workouts;
+  }
+}
+
+Future<List<Workout>?> _workoutsByRoutine(int id) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<RoutineEntry>? entries = await helper.queryRoutineEntriesByRoutine(id);
+  if (entries == null) {
+    log('read row $id: empty');
+    return null;
+  } else {
+    log('read row $id: $entries');
+    entries.sort((a, b) => a.order.compareTo(b.order));
+    List<Workout>? workouts = [];
+    for (var element in entries) {
+      workouts.add( (await _readWorkout(element.workoutId))!);
+    }
     return workouts;
   }
 }
