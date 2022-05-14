@@ -1,6 +1,6 @@
 //import 'dart:html';
 import 'dart:ui';
-
+import 'package:unicons/unicons.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -54,6 +54,19 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(UniconsLine.wrench),
+            onPressed: () async {
+              await toolsAlert();
+            },
+          ),
+          actions: [IconButton(
+            icon: const Icon(UniconsLine.weight),
+            onPressed: () async{
+              await weightAlert();
+              },
+            ),
+          ],
           title: const Text(
             "Fitness Log",
             textAlign: TextAlign.center,
@@ -104,6 +117,59 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+
+  Future<void> toolsAlert() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Tools'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: const <Widget>[
+                Text('Tools Coming Soon!'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+  Future<void> weightAlert() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Weight Tracking'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: const <Widget>[
+                Text('Weight Tracking Coming Soon!'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class WorkoutHistoryPage extends StatefulWidget {
@@ -121,20 +187,22 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   //value for date range picker
-  DateTimeRange? _selectedDateRange = todayRange();
+  DateTimeRange? _selectedDateRange = weekRange();
 
   //list of all saved workout history
-  Future<List<WorkoutHistory>?> workout_history_list = _readAllWorkoutHistory();
+  //Future<List<WorkoutHistory>?> workout_history_list = _readAllWorkoutHistory();
 
   //separate list is needed for filter
   Future<List<WorkoutHistory>?> workout_history_list_filtered =
-      _workoutHistoryByDates(todayRange());
+      _workoutHistoryByDates(weekRange());
 
   //list of all saved workout types
   Future<List<Workout>?> workouts = _readAllWorkouts();
 
   //dropdown list is needed, adds an option for all
   Future<List<Workout>?> workout_dropdown = _readAllWorkoutsDropdown();
+
+  Future<List<Routine>?> routineDropdown = _readAllRoutinesDropdown();
 
   //index for position in their lists
   int filter_index = 0;
@@ -167,13 +235,13 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
 
     if (result != null) {
       // Rebuild the UI
-      var dropdown_list = await workout_dropdown;
+      var dropdown_list = await routineDropdown;
       setState(() {
         _selectedDateRange = result;
         if (dropdown_list![filter_index].id == -1) {
           workout_history_list_filtered = _workoutHistoryByDates(result);
         } else {
-          workout_history_list_filtered = _workoutHistoryByWorkoutAndDates(
+          workout_history_list_filtered = _workoutHistoryByRoutineAndDates(
               dropdown_list[filter_index].id, result);
         }
       });
@@ -193,7 +261,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     }
 
     //update the filtered list and the filtered index from the dropdown selection
-    void dropdownFilter(int workoutId) async {
+    void dropdownFilter(int routineId) async {
       // log(workoutId.toString());
       // Future<List<WorkoutHistory>?> results;
       // if (workoutId == -1) {
@@ -222,9 +290,9 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
       //   });
       //   results = getList(temp);
       // }
-      var types = await workout_dropdown;
+      var routines = await routineDropdown;
       Future<List<WorkoutHistory>?> filteredHistory;
-      if (workoutId == -1) {
+      if (routineId == -1) {
         filteredHistory = _workoutHistoryByDates(_selectedDateRange!);
       } else {
         if (workout == null) {
@@ -240,16 +308,16 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
         //workout_history_list_filtered = results;
         //workout_history_list_filtered = filtered_history;
 
-        if (workoutId == -1) {
+        if (routineId == -1) {
           workout_history_list_filtered =
               _workoutHistoryByDates(_selectedDateRange!);
         } else {
           workout_history_list_filtered =
-              _workoutHistoryByWorkoutAndDates(workoutId, _selectedDateRange!);
+              _workoutHistoryByRoutineAndDates(routineId, _selectedDateRange!);
         }
 
-        for (int i = 0; i < types!.length; i++) {
-          if (workoutId == types[i].id) {
+        for (int i = 0; i < routines!.length; i++) {
+          if (routineId == routines[i].id) {
             filter_index = i;
           }
         }
@@ -257,14 +325,14 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     }
 
     Widget dropdownWidget() {
-      return FutureBuilder<List<Workout>?>(
-          future: workout_dropdown,
+      return FutureBuilder<List<Routine>?>(
+          future: routineDropdown,
           builder: (context, projectSnap) {
             if (projectSnap.hasData) {
               return DropdownButton<String>(
                 isExpanded: true,
                 value: projectSnap.data![filter_index].name,
-                icon: const Icon(Icons.arrow_drop_down),
+                icon: const Icon(UniconsLine.angle_down),
                 elevation: 16,
                 style: const TextStyle(color: Colors.white),
                 underline: Container(
@@ -276,7 +344,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     .firstWhere((element) => element.name == newValue)
                     .id),
                 items: projectSnap.data!
-                    .map<DropdownMenuItem<String>>((Workout value) {
+                    .map<DropdownMenuItem<String>>((Routine value) {
                   return DropdownMenuItem<String>(
                     value: value.name,
                     child: Text(value.name),
@@ -367,7 +435,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
               }
             }
           } else {
-            await noTypesAlert();
+            await noWorkoutsAlert();
           }
         },
         tooltip: 'Add Workout',
@@ -377,7 +445,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
   }
 
-  Future<void> noTypesAlert() {
+  Future<void> noWorkoutsAlert() {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -432,13 +500,13 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     TextEditingController routineController = TextEditingController(
         text: workout != null ? workout!.name : typesString[0]);
     TextEditingController weightController =
-        TextEditingController(text: workoutHistory.weight.toString());
+        TextEditingController(text: workoutHistory.weight == 0 ? null : workoutHistory.weight.toString());
     TextEditingController timerController =
-        TextEditingController(text: workoutHistory.timer.toString());
+        TextEditingController(text:workoutHistory.timer == 0 ? null : workoutHistory.timer.toString());
     TextEditingController setController =
-        TextEditingController(text: workoutHistory.sets.toString());
+        TextEditingController(text: workoutHistory.sets == 0 ? null :workoutHistory.sets.toString());
     TextEditingController repController =
-        TextEditingController(text: workoutHistory.reps.toString());
+        TextEditingController(text: workoutHistory.reps == 0 ? null :workoutHistory.reps.toString());
     DateTime myDateTime =
         add ? DateTime.now() : DateTime.parse(workoutHistory.date);
     TextEditingController dateController = TextEditingController(
@@ -467,7 +535,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                                 isExpanded: true,
                                 value: projectSnap.data![workout_index].name,
                                 icon: add
-                                    ? Icon(Icons.arrow_drop_down)
+                                    ? Icon(UniconsLine.angle_down)
                                     : Icon(null),
                                 elevation: 16,
                                 style: add
@@ -678,7 +746,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     }
                     setState(() {
                       workout_history_list_filtered = _workoutHistoryByDates(_selectedDateRange!);
-                      workout_history_list = workout_history_list_filtered;
+                      //workout_history_list = workout_history_list_filtered;
                       filter_index = 0;
                     });
                     Navigator.of(context).pop();
@@ -716,7 +784,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                 await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
                   workout_history_list_filtered = _readAllWorkoutHistory();
-                  workout_history_list = workout_history_list_filtered;
+                  //workout_history_list = workout_history_list_filtered;
                 });
               },
               title: Column(
@@ -768,7 +836,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                 await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
                   workout_history_list_filtered = _readAllWorkoutHistory();
-                  workout_history_list = workout_history_list_filtered;
+                  //workout_history_list = workout_history_list_filtered;
                 });
               },
               title: Column(
@@ -817,7 +885,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                 await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
                   workout_history_list_filtered = _readAllWorkoutHistory();
-                  workout_history_list = workout_history_list_filtered;
+                  //workout_history_list = workout_history_list_filtered;
                 });
               },
               title: Column(
@@ -896,7 +964,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       decoration: const InputDecoration(
                         labelText: "Search",
                         hintText: "Workout Name",
-                        prefixIcon: Icon(Icons.search),
+                        prefixIcon: Icon(UniconsLine.search),
                         enabledBorder: UnderlineInputBorder(
                           borderSide: BorderSide(color: Colors.white),
                         ),
@@ -1256,6 +1324,8 @@ class WorkoutProfile extends StatefulWidget {
 class _WorkoutProfileState extends State<WorkoutProfile> {
   late Workout type;
   _WorkoutProfileState({required this.type});
+
+  DateTimeRange dateTimeRange = weekRange();
   @override
   Widget build(BuildContext context) {
     log("current workout is ${type.name}");
@@ -1614,7 +1684,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
                       },
                       child: Card(
                         child: ListTile(
-                          trailing: Icon(Icons.drag_handle_outlined),
+                          trailing: Icon(UniconsLine.draggabledots),
                           tileColor: Colors.black12,
                           title: Text('${snapshot.data![index].workoutName}'),
                         ),
@@ -1637,7 +1707,13 @@ class _RoutineProfileState extends State<RoutineProfile> {
                 },
               );
             } else {
-              return SizedBox.shrink();
+              return const Align(
+                alignment: Alignment.center,
+                child: Text(
+                  'No Workouts for this Routine',
+                  textAlign: TextAlign.center,
+                ),
+              );
             }
           }),
       floatingActionButton: FloatingActionButton(
@@ -1652,12 +1728,41 @@ class _RoutineProfileState extends State<RoutineProfile> {
       ),
     );
   }
+  Future<void> noWorkoutsAlert() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('No Workouts'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: const <Widget>[
+                Text('No workouts have been added.'),
+                Text('Please add workouts before adding history.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> AddWorkoutEntryForm(BuildContext context) async {
     List<Workout>? workouts = await _readAllWorkouts();
-    Workout workout = workouts![0];
-    TextEditingController workoutController =
-        TextEditingController(text: workouts[0].name);
+    if(workouts == null){
+      return noWorkoutsAlert();
+    }
+
+    Workout workout = workouts[0];
 
     return await showDialog(
       context: context,
@@ -1676,7 +1781,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
                     DropdownButton<Workout>(
                       isExpanded: true,
                       value: workout,
-                      icon: Icon(Icons.arrow_drop_down),
+                      icon: Icon(UniconsLine.angle_down),
                       elevation: 16,
                       style: TextStyle(color: Colors.white),
                       underline: Container(
@@ -1783,7 +1888,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
                     return const Align(
                       alignment: Alignment.center,
                       child: Text(
-                        'No Routines',
+                        'No Workouts for this Routine',
                         textAlign: TextAlign.center,
                       ),
                     );
@@ -1979,7 +2084,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
                     MaterialPageRoute(
                         builder: (context) => ExecuteWorkoutEntries(context)));
               },
-              icon: Icon(Icons.play_arrow))
+              icon: Icon(UniconsLine.play))
         ],
       ),
       body: OrderedWorkoutList(),
@@ -1997,33 +2102,63 @@ class WorkoutGraphs extends StatefulWidget {
 
 class _WorkoutGraphsState extends State<WorkoutGraphs> {
   late Workout workout;
-  late Future<List<Feature>?> workoutFeatures; //= _graphFeaturesByWorkoutAndDate(workout.id, dateRange);
+  late Future<List<WorkoutHistory>?> workoutHistory;
   DateTimeRange _selectedDateRange = weekRange();
   _WorkoutGraphsState({required this.workout});
+
+  void selectDates() async {
+    DateTime now = DateTime.now();
+    DateTime dateStart = DateTime(now.year - 5, now.month, now.day);
+    DateTime dateEnd = DateTime(now.year, now.month, now.day);
+    final DateTimeRange? result = await showDateRangePicker(
+      context: context,
+      firstDate: dateStart,
+      lastDate: dateEnd,
+      currentDate: now,
+      saveText: 'Done',
+    );
+
+    if (result != null) {
+      // Rebuild the UI
+      setState(() {
+        _selectedDateRange = result;
+
+        workoutHistory = _workoutHistoryByWorkoutAndDates(workout.id, _selectedDateRange);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     if (workout != null) {
-      workoutFeatures = _graphFeaturesByWorkoutAndDate(workout.id, _selectedDateRange);
+      workoutHistory = _workoutHistoryByWorkoutAndDates(workout.id, _selectedDateRange);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        TextButton(
+            onPressed: selectDates,
+            child: Text(
+              "${DateFormat('yyyy/MM/dd').format(_selectedDateRange.start)} - "
+                  "${DateFormat('yyyy/MM/dd').format(_selectedDateRange.end)}",
+              style: TextStyle(color: Colors.grey, fontSize: 18),
+            )),
+        Divider(),
+
+        //switch case here, 3 functions instead
         Expanded(
-          child: FutureBuilder<List<Feature>?>(
-            future: workoutFeatures,
+          child: FutureBuilder<List<WorkoutHistory>?>(
+            future: workoutHistory ,
             builder: (context, projectSnap) {
-              if (projectSnap.hasData) {
-                return ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 10, top: 10),
-                    itemCount: projectSnap.data?.length,
-                    itemBuilder: (BuildContext context, int index) =>
-                        LineGraphCard(projectSnap.data![index]));
+              Widget? graphs = _graphFeaturesByWorkoutAndDate(projectSnap.data, context);
+              if (projectSnap.hasData && graphs != null)  {
+                //return LineGraphCard(projectSnap.data![0], projectSnap.data![1]);
+                return graphs;
               } else {
                 return const Align(
                   alignment: Alignment.center,
                   child: Text(
-                    'No Routines',
+                    'No data',
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -2035,41 +2170,61 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
     );
   }
 
-  Widget LineGraphCard(Feature feature) {
+  Widget LineGraphCard(List<Feature> features, List<String> dates) {
     
     return Card(
       child: LineGraph(
-          features: [feature],
-          size: Size(150, 150),
-          labelX: ["test", "test"],
-          labelY: ["test", "test"],
+          features: features,
+          size: Size(400, 300) ,
+          labelX: dates,
+          labelY: ["Trend"],
         showDescription: true,
-        graphColor: Colors.blue,
+        graphColor: Colors.white,
       ),
     );
   }
 }
 
-Future<List<Feature>?> _graphFeaturesByWorkoutAndDate(int workoutId, DateTimeRange dateRange) async{
-  var workoutHistory = await _workoutHistoryByWorkoutAndDates(workoutId, dateRange);
+Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, BuildContext context) {
+  //var workoutHistory = await _workoutHistoryByWorkoutAndDates(workoutId, dateRange);
   
-  if(workoutHistory == null){
+  if(workoutHistory == null || workoutHistory.isEmpty){
     return null;
   } else {
+    workoutHistory.sort((a, b) {
+      return a.date.compareTo(b.date);
+    });
     List<Feature> features = [];
     //match case with workout type
     //get the attributes that should be graphed, and construct a feature for each
     WorkoutType type = WorkoutType.values[workoutHistory[0].workoutType];
+
+    //for width, if the width is less than the sreen width we want (400)? then do
+    //60 width per item
+
+    double graphWidth = MediaQuery.of(context).size.width - 40;
+    List<String> dates = [];
+    if(graphWidth < workoutHistory.length * 60) {
+      graphWidth = workoutHistory.length * 60;
+    }
     log('type is ${workoutTypeString(type)}');
     switch (type) {
       case WorkoutType.strength:
         List<double> dataWeight = [];
         List<double> dataSet = [];
         List<double> dataRep = [];
+
+
+
+        double highestWeight =  workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
+        double highestSet =  workoutHistory.reduce((a, b) => a.sets > b.sets ? a : b).sets.toDouble();
+        double highestRep =  workoutHistory.reduce((a, b) => a.reps > b.reps ? a : b).reps.toDouble();
         for(var history in workoutHistory){
-          dataWeight.add(history.weight);
-          dataSet.add(history.sets.toDouble());
-          dataRep.add(history.reps.toDouble());
+          dataWeight.add(history.weight / highestWeight);
+          dataSet.add(history.sets.toDouble() / highestSet);
+          dataRep.add(history.reps.toDouble() / highestRep);
+
+          dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
         }
         log(dataWeight.toString());
         log(dataSet.toString());
@@ -2090,24 +2245,159 @@ Future<List<Feature>?> _graphFeaturesByWorkoutAndDate(int workoutId, DateTimeRan
             data: dataRep
         ));
         log("created ${features.length} features");
-        return features;
+
+
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text("Max Weight ${highestWeight} LBS"),
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: LineGraph(
+                      features: [features[0]],
+                      size: Size(graphWidth, 400) ,
+                      labelX: dates,
+                      labelY: [(highestWeight / 2).round().toString() ,
+                        highestWeight.round().toString()],
+                      showDescription: true,
+                      graphColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text("Max Sets $highestSet "),
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: LineGraph(
+                      features: [features[1]],
+                      size: Size(graphWidth, 400) ,
+                      labelX: dates,
+                      labelY: [(highestSet / 2).round().toString() ,
+                        highestSet.round().toString()],
+                      showDescription: true,
+                      graphColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text("Max Reps ${highestRep} "),
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: LineGraph(
+                      features: [features[2]],
+                      size: Size(graphWidth, 400) ,
+                      labelX: dates,
+                      labelY: [(highestRep / 2).round().toString() ,
+                        highestRep.round().toString()],
+                      showDescription: true,
+                      graphColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text("Comparison"),
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: LineGraph(
+                      features: features,
+                      size: Size(graphWidth, 400) ,
+                      labelX: dates,
+                      labelY: [""],
+                      showDescription: true,
+                      graphColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ]
+          ),
+        );
+        //return features;
       case WorkoutType.cardio:
         List<double> dataDuration = [];
+        double highestDuration =  workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
         for(var history in workoutHistory){
-          dataDuration.add(history.timer);
+          dataDuration.add(history.timer/ highestDuration);
+
+          dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
         }
         features.add(Feature(
             title: "Duration",
-            color: Colors.red,
+            color: Colors.blue,
             data: dataDuration
         ));
-        return features;
+        return SingleChildScrollView(
+          child: Column(
+              children: [
+
+                 Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text("Max Duration $highestDuration "),
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: LineGraph(
+                        features: features,
+                        size: Size(graphWidth, 400) ,
+                        labelX: dates,
+                        labelY: [(highestDuration / 2).round().toString() ,
+                          highestDuration.round().toString()],
+                        showDescription: true,
+                        graphColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ]
+          ),
+        );
       case WorkoutType.both:
         List<double> dataWeight = [];
         List<double> dataDuration = [];
+        double highestWeight =  workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
+        double highestDuration =  workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
         for(var history in workoutHistory){
-          dataWeight.add(history.weight);
-          dataDuration.add(history.timer);
+          dataWeight.add(history.weight / highestWeight);
+          dataDuration.add(history.timer / highestDuration);
+
+          dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
         }
         features.add(Feature(
             title: "Weight",
@@ -2116,11 +2406,135 @@ Future<List<Feature>?> _graphFeaturesByWorkoutAndDate(int workoutId, DateTimeRan
         ));
         features.add(Feature(
             title: "Duration",
-            color: Colors.red,
+            color: Colors.blue,
             data: dataDuration
         ));
-        return features;
+        return SingleChildScrollView(
+          child: Column(
+              children: [
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text("Max Weight ${highestWeight} LBS"),
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: LineGraph(
+                        features: [features[0]],
+                        size: Size(graphWidth, 400) ,
+                        labelX: dates,
+                        labelY: [(highestWeight / 2).round().toString() ,
+                          highestWeight.round().toString()],
+                        showDescription: true,
+                        graphColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text("Max Duration $highestDuration "),
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: LineGraph(
+                        features: [features[1]],
+                        size: Size(graphWidth, 400) ,
+                        labelX: dates,
+                        labelY: [(highestDuration / 2).round().toString() ,
+                          highestDuration.round().toString()],
+                        showDescription: true,
+                        graphColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text("Comparison"),
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: LineGraph(
+                        features: features,
+                        size: Size(graphWidth, 400) ,
+                        labelX: dates,
+                        labelY: [""],
+                        showDescription: true,
+                        graphColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ]
+          ),
+        );
     }
+  }
+}
+
+Future<List<String>?> _graphDatesByWorkoutAndDate(int workoutId, DateTimeRange dateRange) async{
+  var workoutHistory = await _workoutHistoryByWorkoutAndDates(workoutId, dateRange);
+
+  if(workoutHistory == null){
+    return null;
+  } else {
+    workoutHistory.sort((a, b) {
+      return a.date.compareTo(b.date);
+    });
+    List<String> dates = [];
+    for(var history in workoutHistory){
+      dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
+    }
+    return dates;
+  }
+}
+
+Future<List<String>?> _graphWeightByWorkoutAndDate(int workoutId, DateTimeRange dateRange) async{
+  var workoutHistory = await _workoutHistoryByWorkoutAndDates(workoutId, dateRange);
+
+  if(workoutHistory == null){
+    return null;
+  } else {
+    workoutHistory.sort((a, b) {
+      return a.date.compareTo(b.date);
+    });
+    List<String> weights = [];
+    for(var history in workoutHistory){
+      weights.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
+    }
+    return weights;
+  }
+}
+
+Future<List<String>?> _graphDurationByWorkoutAndDate(int workoutId, DateTimeRange dateRange) async{
+  var workoutHistory = await _workoutHistoryByWorkoutAndDates(workoutId, dateRange);
+
+  if(workoutHistory == null){
+    return null;
+  } else {
+    workoutHistory.sort((a, b) {
+      return a.date.compareTo(b.date);
+    });
+    List<String> dates = [];
+    for(var history in workoutHistory){
+      dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
+    }
+    return dates;
   }
 }
 
@@ -2340,6 +2754,25 @@ Future<List<Workout>?> _readAllWorkoutsDropdown() async {
   }
 }
 
+Future<List<Routine>?> _readAllRoutinesDropdown() async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  int rowId = 1;
+  List<Routine>? routines = await helper.queryAllRoutines();
+  if (routines == null) {
+    log('read row $rowId: empty');
+    return null;
+  } else {
+    log('read row $rowId: $routines');
+    Routine add = Routine();
+    add.id = -1;
+    add.name = "All";
+    add.date = DateTime.now().toString();
+    routines.sort((a, b) => a.name.compareTo(b.name));
+    routines.insert(0, add);
+    return routines;
+  }
+}
+
 _saveWorkoutHistory(String workoutName, int type, DateTime date, int sets,
     int reps, double weight, double timer, int workoutId) async {
   WorkoutHistory workout = WorkoutHistory();
@@ -2447,6 +2880,9 @@ Future<List<WorkoutHistory>?> _workoutHistoryByWorkoutAndDates(
         log("skipped ${value.workoutName} from ${value.date}");
       }
     }
+    workoutsInRange.sort((a, b) {
+      return b.date.compareTo(a.date);
+    });
     return workoutsInRange;
   }
 }
@@ -2465,6 +2901,51 @@ Future<List<WorkoutHistory>?> _workoutHistoryByDates(
           datesEqual(range.start, curDay) ||
           datesEqual(range.end, curDay)) {
         workoutsInRange.add(value);
+      }
+    }
+    workoutsInRange.sort((a, b) {
+      return b.date.compareTo(a.date);
+    });
+    return workoutsInRange;
+  }
+}
+
+Future<List<WorkoutHistory>?> _workoutHistoryByRoutineAndDates(
+    int id, DateTimeRange range) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<Workout>? workouts = await _workoutsByRoutine(id);
+
+  List<WorkoutHistory>? allWorkoutHistory = [];
+
+  if (workouts == null) {
+    log('read row $id: empty');
+    return null;
+  } else {
+    for(var workout in workouts){
+      List<WorkoutHistory>? tempHistory = await _workoutHistoryByWorkoutAndDates(workout.id, range);
+      if(tempHistory != null){
+        allWorkoutHistory.addAll(tempHistory);
+      }
+    }
+
+  }
+
+  if (allWorkoutHistory.isEmpty) {
+    log('read row $id: empty');
+    return null;
+  } else {
+    log('read row $id: $allWorkoutHistory');
+    List<WorkoutHistory>? workoutsInRange = [];
+    log(allWorkoutHistory.length.toString());
+    for (var value in allWorkoutHistory) {
+      DateTime curDay = DateTime.parse(value.date);
+      if (range.start.isBefore(curDay) && range.end.isAfter(curDay) ||
+          datesEqual(range.start, curDay) ||
+          datesEqual(range.end, curDay)) {
+        workoutsInRange.add(value);
+        log("added ${value.workoutName} from ${value.date}");
+      } else {
+        log("skipped ${value.workoutName} from ${value.date}");
       }
     }
     workoutsInRange.sort((a, b) {
