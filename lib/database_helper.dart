@@ -53,7 +53,7 @@ class WorkoutHistory {
     workoutId = map[columnWorkoutId];
   }
 
-  // convenience method to create a Map from this Word object
+  // convenience method to create a Map from this object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       columnWorkoutName: workoutName,
@@ -87,7 +87,7 @@ class Workout {
     type = map[columnType];
   }
 
-  // convenience method to create a Map from this Word object
+  // convenience method to create a Map from this object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       columnName: name,
@@ -120,7 +120,7 @@ class Routine {
     date = map[columnDate];
   }
 
-  // convenience method to create a Map from this Word object
+  // convenience method to create a Map from this object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       columnName: name,
@@ -150,7 +150,7 @@ class RoutineEntry {
     order = map[columnOrder];
   }
 
-  // convenience method to create a Map from this Word object
+  // convenience method to create a Map from this object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       columnWorkoutName: workoutName,
@@ -467,10 +467,6 @@ class DatabaseHelper {
     List<Map> maps = await db!.query(tableWorkout);
     return maps.isNotEmpty;
   }
-
-  // bool queryWorkoutHasHistory(){
-  //   return true;
-  // }
 
   Future<int> deleteWorkoutHistory(int id) async {
     Database? db = await database;
