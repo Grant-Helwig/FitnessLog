@@ -442,6 +442,26 @@ class DatabaseHelper {
     return null;
   }
 
+  Future<List<RoutineEntry>?> queryRoutineEntriesByWorkout(int id) async {
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableRoutineEntry,
+        columns: [
+          columnId,
+          columnWorkoutName,
+          columnWorkoutId,
+          columnRoutineId,
+          columnOrder
+        ],
+        where: '$columnWorkoutId = ?',
+        whereArgs: [id]);
+    if (maps.length > 0) {
+      List<RoutineEntry> entries = [];
+      maps.forEach((map) => entries.add(RoutineEntry.fromMap(map)));
+      return entries;
+    }
+    return null;
+  }
+
   Future<bool> queryHasWorkouts() async{
     Database? db = await database;
     List<Map> maps = await db!.query(tableWorkout);

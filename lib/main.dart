@@ -1170,7 +1170,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
             child: ListBody(
               children: const <Widget>[
                 Text('This workout has history.'),
-                Text('Please delete all history before deleting workouts.'),
+                Text('Please delete all history and remove from all routines before deleting workouts.'),
               ],
             ),
           ),
@@ -1188,7 +1188,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
   }
 
   //update and delete are both on long press
-  Future<void> updateOptions(Workout type) {
+  Future<void> updateOptions(Workout workout) {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -1203,13 +1203,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
                   onPressed: () async {
                     Navigator.of(context).pop();
                     List<WorkoutHistory>? workoutsForType =
-                        await _workoutHistoryByWorkout(type.id);
+                        await _workoutHistoryByWorkout(workout.id);
                     if (workoutsForType == null) {
                       await addWorkoutForm(
-                          context, false, false, type.type, type);
+                          context, false, false, workout.type, workout);
                     } else {
                       await addWorkoutForm(
-                          context, false, true, type.type, type);
+                          context, false, true, workout.type, workout);
                     }
                   },
                 ),
@@ -1218,10 +1218,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
                   child: const Text('Delete'),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    List<WorkoutHistory>? workoutsForType =
-                        await _workoutHistoryByWorkout(type.id);
-                    if (workoutsForType == null) {
-                      await _deleteWorkout(type.id);
+                    List<WorkoutHistory>? historyForWorkout =
+                        await _workoutHistoryByWorkout(workout.id);
+
+                    List<RoutineEntry>? routineEntriesForWorkout =
+                        await _routineEntryByWorkout(workout.id);
+                    if (historyForWorkout == null && routineEntriesForWorkout == null) {
+                      await _deleteWorkout(workout.id);
                     } else {
                       return cantDeleteAlert();
                     }
@@ -2608,6 +2611,19 @@ _updateRoutineEntry(RoutineEntry routineEntry) async {
 Future<List<RoutineEntry>?> _routineEntryByRoutine(int id) async {
   DatabaseHelper helper = DatabaseHelper.instance;
   List<RoutineEntry>? workouts = await helper.queryRoutineEntriesByRoutine(id);
+  if (workouts == null) {
+    log('read row $id: empty');
+    return null;
+  } else {
+    log('read row $id: $workouts');
+    workouts.sort((a, b) => a.order.compareTo(b.order));
+    return workouts;
+  }
+}
+
+Future<List<RoutineEntry>?> _routineEntryByWorkout(int id) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<RoutineEntry>? workouts = await helper.queryRoutineEntriesByWorkout(id);
   if (workouts == null) {
     log('read row $id: empty');
     return null;
