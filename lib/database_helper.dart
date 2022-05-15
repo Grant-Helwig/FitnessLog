@@ -53,7 +53,7 @@ class WorkoutHistory {
     workoutId = map[columnWorkoutId];
   }
 
-  // convenience method to create a Map from this Word object
+  // convenience method to create a Map from this object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       columnWorkoutName: workoutName,
@@ -87,7 +87,7 @@ class Workout {
     type = map[columnType];
   }
 
-  // convenience method to create a Map from this Word object
+  // convenience method to create a Map from this object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       columnName: name,
@@ -120,7 +120,7 @@ class Routine {
     date = map[columnDate];
   }
 
-  // convenience method to create a Map from this Word object
+  // convenience method to create a Map from this object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       columnName: name,
@@ -150,7 +150,7 @@ class RoutineEntry {
     order = map[columnOrder];
   }
 
-  // convenience method to create a Map from this Word object
+  // convenience method to create a Map from this object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
       columnWorkoutName: workoutName,
@@ -442,15 +442,31 @@ class DatabaseHelper {
     return null;
   }
 
+  Future<List<RoutineEntry>?> queryRoutineEntriesByWorkout(int id) async {
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableRoutineEntry,
+        columns: [
+          columnId,
+          columnWorkoutName,
+          columnWorkoutId,
+          columnRoutineId,
+          columnOrder
+        ],
+        where: '$columnWorkoutId = ?',
+        whereArgs: [id]);
+    if (maps.length > 0) {
+      List<RoutineEntry> entries = [];
+      maps.forEach((map) => entries.add(RoutineEntry.fromMap(map)));
+      return entries;
+    }
+    return null;
+  }
+
   Future<bool> queryHasWorkouts() async{
     Database? db = await database;
     List<Map> maps = await db!.query(tableWorkout);
     return maps.isNotEmpty;
   }
-
-  // bool queryWorkoutHasHistory(){
-  //   return true;
-  // }
 
   Future<int> deleteWorkoutHistory(int id) async {
     Database? db = await database;

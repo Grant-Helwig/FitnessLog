@@ -1,18 +1,13 @@
-//import 'dart:html';
-import 'dart:ui';
 import 'package:unicons/unicons.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:developer';
-import 'color_themes.dart';
 import 'database_helper.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
-
 import 'package:draw_graph/draw_graph.dart';
 import 'package:draw_graph/models/feature.dart';
-//import 'package:mdi/mdi.dart';
 
 void main() {
   runApp(const MyApp());
@@ -25,8 +20,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Fitness Log',
-      //themeMode: ThemeMode.dark,
       theme: ThemeData.dark(),
+
+      // experimenting with custom pallets. For now, Dark Only.
       // darkTheme: ThemeData.from(colorScheme: ColorScheme.fromSwatch(primarySwatch:
       // MaterialColor(CustomColors.darkBrown[800]!.value, CustomColors.darkBrown))
       //     .copyWith(secondary: CustomColors.beige[100],)),
@@ -43,9 +39,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final GlobalKey _key = GlobalKey();
-
   //main page that has 3 tabs
   @override
   Widget build(BuildContext context) {
@@ -54,16 +47,19 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
+
+          //Tool and Weight Tracking Features to add later
           leading: IconButton(
             icon: const Icon(UniconsLine.wrench),
             onPressed: () async {
               await toolsAlert();
             },
           ),
-          actions: [IconButton(
-            icon: const Icon(UniconsLine.weight),
-            onPressed: () async{
-              await weightAlert();
+          actions: [
+            IconButton(
+              icon: const Icon(UniconsLine.weight),
+              onPressed: () async {
+                await weightAlert();
               },
             ),
           ],
@@ -109,6 +105,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         body: const TabBarView(
           children: <Widget>[
+            //Null workout object because we are viewing history for all workouts
             WorkoutHistoryPage(workout: null),
             WorkoutPage(),
             RoutinePage()
@@ -144,6 +141,7 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
   }
+
   Future<void> weightAlert() {
     return showDialog<void>(
       context: context,
@@ -181,46 +179,44 @@ class WorkoutHistoryPage extends StatefulWidget {
 }
 
 class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
+  //used for when we are using the Workout History page from a Workout Profile
   late Workout? workout;
+
   _WorkoutHistoryPageState({required this.workout});
 
-  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  //Used for validating fields when adding workout history
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   //value for date range picker
   DateTimeRange? _selectedDateRange = weekRange();
 
-  //list of all saved workout history
-  //Future<List<WorkoutHistory>?> workout_history_list = _readAllWorkoutHistory();
-
   //separate list is needed for filter
-  Future<List<WorkoutHistory>?> workout_history_list_filtered =
+  Future<List<WorkoutHistory>?> _workoutHistory =
       _workoutHistoryByDates(weekRange());
 
-  //list of all saved workout types
-  Future<List<Workout>?> workouts = _readAllWorkouts();
+  //list of all saved workouts
+  final Future<List<Workout>?> _workouts = _readAllWorkouts();
 
-  //dropdown list is needed, adds an option for all
-  Future<List<Workout>?> workout_dropdown = _readAllWorkoutsDropdown();
+  //list for populating Routine Dropdown Filter
+  final Future<List<Routine>?> _routineDropdown = _readAllRoutinesDropdown();
 
-  Future<List<Routine>?> routineDropdown = _readAllRoutinesDropdown();
+  //index for position in their lists, useful with future builders
+  int filterIndex = 0;
+  int workoutIndex = 0;
 
-  //index for position in their lists
-  int filter_index = 0;
-  int workout_index = 0;
-
-  //function to update the type index for the dropdown
+  //function to update the workout index for the dropdown
   Future<int> updateWorkoutIndex(newValue) async {
-    var workoutsList = await workouts;
+    var workoutsList = await _workouts;
     for (var i = 0; i < workoutsList!.length; i++) {
       if (newValue == workoutsList[i].name) {
-        workout_index = i;
-        log(i.toString());
+        workoutIndex = i;
         return i;
       }
     }
     return -1;
   }
 
+  //open the Date Range Picker and save the results
   void selectDates() async {
     DateTime now = DateTime.now();
     DateTime dateStart = DateTime(now.year - 5, now.month, now.day);
@@ -234,15 +230,15 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
 
     if (result != null) {
-      // Rebuild the UI
-      var dropdown_list = await routineDropdown;
+      var dropdownList = await _routineDropdown;
       setState(() {
         _selectedDateRange = result;
-        if (dropdown_list![filter_index].id == -1) {
-          workout_history_list_filtered = _workoutHistoryByDates(result);
+        // -1 is the ID for all, so do not filter if that is the case
+        if (dropdownList![filterIndex].id == -1) {
+          _workoutHistory = _workoutHistoryByDates(result);
         } else {
-          workout_history_list_filtered = _workoutHistoryByRoutineAndDates(
-              dropdown_list[filter_index].id, result);
+          _workoutHistory = _workoutHistoryByRoutineAndDates(
+              dropdownList[filterIndex].id, result);
         }
       });
     }
@@ -252,160 +248,120 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
   Widget build(BuildContext context) {
     //if you navigated from the profile, pre filter the history by the id and range
     if (workout != null) {
-      workout_history_list_filtered =
+      _workoutHistory =
           _workoutHistoryByWorkoutAndDates(workout!.id, _selectedDateRange!);
-    }
-
-    Future<List<WorkoutHistory>?> getList(List<WorkoutHistory>? temp) async {
-      return temp;
     }
 
     //update the filtered list and the filtered index from the dropdown selection
     void dropdownFilter(int routineId) async {
-      // log(workoutId.toString());
-      // Future<List<WorkoutHistory>?> results;
-      // if (workoutId == -1) {
-      //   results = _workoutsByDates(_selectedDateRange!);
-      // } else {
-      //   //construct a list to display with the matching keys
-      //   results = Future<List<WorkoutHistory>?>.value();
-      //   List<WorkoutHistory>? temp = [];
-      //   await workout_history_list.then((value) {
-      //     if (value != null) {
-      //       for (var item in value) {
-      //         if (item.typeId == workoutId) {
-      //
-      //           if(_selectedDateRange!.start.isBefore(DateTime.parse(item.date))
-      //               && _selectedDateRange!.end.isAfter(DateTime.parse(item.date)) ||
-      //               datesEqual(_selectedDateRange!.start, DateTime.parse(item.date)) ||
-      //               datesEqual(_selectedDateRange!.end, DateTime.parse(item.date))){
-      //             temp.add(item);
-      //           }
-      //         }
-      //       }
-      //     }
-      //   });
-      //   temp.forEach((element) {
-      //     log(element.workoutName);
-      //   });
-      //   results = getList(temp);
-      // }
-      var routines = await routineDropdown;
-      Future<List<WorkoutHistory>?> filteredHistory;
-      if (routineId == -1) {
-        filteredHistory = _workoutHistoryByDates(_selectedDateRange!);
-      } else {
-        if (workout == null) {
-        } else {
-          filteredHistory = _workoutHistoryByWorkoutAndDates(
-              workout!.id, _selectedDateRange!);
-        }
-      }
-      //Future<List<WorkoutHistory>?> filtered_history =  _workoutsByTypeAndDates(workout!.id, _selectedDateRange!);
-      //var new_list = await _workoutsByTypeAndDates(type!.id, _selectedDateRange!);
-      // Refresh the UI
+      var routines = await _routineDropdown;
       setState(() {
-        //workout_history_list_filtered = results;
-        //workout_history_list_filtered = filtered_history;
-
         if (routineId == -1) {
-          workout_history_list_filtered =
-              _workoutHistoryByDates(_selectedDateRange!);
+          _workoutHistory = _workoutHistoryByDates(_selectedDateRange!);
         } else {
-          workout_history_list_filtered =
+          _workoutHistory =
               _workoutHistoryByRoutineAndDates(routineId, _selectedDateRange!);
         }
 
         for (int i = 0; i < routines!.length; i++) {
           if (routineId == routines[i].id) {
-            filter_index = i;
+            filterIndex = i;
           }
         }
       });
     }
 
+    //Dropdown Widget that updates the results
     Widget dropdownWidget() {
       return FutureBuilder<List<Routine>?>(
-          future: routineDropdown,
-          builder: (context, projectSnap) {
-            if (projectSnap.hasData) {
-              return DropdownButton<String>(
-                isExpanded: true,
-                value: projectSnap.data![filter_index].name,
-                icon: const Icon(UniconsLine.angle_down),
-                elevation: 16,
-                style: const TextStyle(color: Colors.white),
-                underline: Container(
-                  height: 2,
-                  color: Colors.white,
-                ),
-                onChanged: (String? newValue) => dropdownFilter(projectSnap
-                    .data!
-                    .firstWhere((element) => element.name == newValue)
-                    .id),
-                items: projectSnap.data!
-                    .map<DropdownMenuItem<String>>((Routine value) {
-                  return DropdownMenuItem<String>(
-                    value: value.name,
-                    child: Text(value.name),
-                  );
-                }).toList(),
-              );
-            } else {
-              return SizedBox.shrink();
-            }
-          });
+        future: _routineDropdown,
+        builder: (context, projectSnap) {
+          if (projectSnap.hasData) {
+            return DropdownButton<String>(
+              isExpanded: true,
+              value: projectSnap.data![filterIndex].name,
+              icon: const Icon(UniconsLine.angle_down),
+              elevation: 16,
+              style: const TextStyle(color: Colors.white),
+              underline: Container(
+                height: 2,
+                color: Colors.white,
+              ),
+              onChanged: (String? newValue) => dropdownFilter(projectSnap.data!
+                  .firstWhere((element) => element.name == newValue)
+                  .id),
+              items: projectSnap.data!
+                  .map<DropdownMenuItem<String>>((Routine value) {
+                return DropdownMenuItem<String>(
+                  value: value.name,
+                  child: Text(value.name),
+                );
+              }).toList(),
+            );
+          } else {
+            // way to return an empty widget until the routine dropdown populates
+            return const SizedBox.shrink();
+          }
+        },
+      );
     }
 
     return Scaffold(
       drawer: const Drawer(),
       body: Container(
-          child: Column(
-        children: [
-          TextButton(
-              onPressed: selectDates,
-              child: Text(
-                "${DateFormat('yyyy/MM/dd').format(_selectedDateRange!.start)} - "
-                "${DateFormat('yyyy/MM/dd').format(_selectedDateRange!.end)}",
-                style: TextStyle(color: Colors.grey, fontSize: 18),
-              )),
-          Divider(),
-          if (workout == null) dropdownWidget(),
-          Expanded(
+        child: Column(
+          children: [
+            //Date Range Button
+            TextButton(
+                onPressed: selectDates,
+                child: Text(
+                  "${DateFormat('yyyy/MM/dd').format(_selectedDateRange!.start)} - "
+                  "${DateFormat('yyyy/MM/dd').format(_selectedDateRange!.end)}",
+                  style: const TextStyle(color: Colors.grey, fontSize: 18),
+                )),
+            const Divider(),
+
+            //do not show the routine dropdown on the Workout Profile
+            if (workout == null) dropdownWidget(),
+
+            //build a list of workout history cards
+            Expanded(
               child: FutureBuilder<List<dynamic>?>(
-                  //<List<WorkoutRoutine>?>
-                  future:
-                      Future.wait([workout_history_list_filtered, workouts]),
-                  builder: (context, projectSnap) {
-                    if (projectSnap.hasData &&
-                        projectSnap.data![0] != null &&
-                        projectSnap.data![0].length > 0) {
-                      return ListView.builder(
-                          padding: const EdgeInsets.only(bottom: 100),
-                          itemCount: projectSnap.data![0]?.length,
-                          itemBuilder: (BuildContext context, int index) =>
-                              buildWorkoutCard(
-                                  context,
-                                  projectSnap.data![0][index],
-                                  projectSnap.data![1]));
-                    } else {
-                      return const Align(
-                        alignment: Alignment.center,
-                        child: Text(
-                          'No History',
-                          textAlign: TextAlign.center,
-                        ),
-                      );
-                    }
-                  }))
-        ],
-      )),
-      //when opening the add workout modal, an object is always needed
+                future: Future.wait([_workoutHistory, _workouts]),
+                builder: (context, projectSnap) {
+                  if (projectSnap.hasData &&
+                      projectSnap.data![0] != null &&
+                      projectSnap.data![0].length > 0) {
+                    return ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 100),
+                        itemCount: projectSnap.data![0]?.length,
+                        itemBuilder: (BuildContext context, int index) =>
+                            buildWorkoutCard(
+                                context,
+                                projectSnap.data![0][index],
+                                projectSnap.data![1]));
+                  } else {
+                    return const Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                        'No History',
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          List<Workout>? types = await workouts;
+          //verify that Workouts exist before adding history
+          List<Workout>? workouts = await _workouts;
 
-          if (types != null) {
+          if (workouts != null) {
+            //when opening the add workout modal, an object is always needed
             WorkoutHistory workoutHistory = WorkoutHistory();
             workoutHistory.workoutName = "";
             workoutHistory.date = DateTime.now().toString();
@@ -414,27 +370,37 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
             workoutHistory.weight = 0;
             workoutHistory.timer = 0;
             workoutHistory.workoutId = 0;
-            workout_index = 0;
+            workoutIndex = 0;
+
+            //if we are not on the Workout Profile, just use the first workout in the dropdown
             if (workout == null) {
               WorkoutHistory? mostRecentWorkoutHistory =
-                  await _mostRecentWorkoutHistoryByWorkout(types[0].id);
+                  await _mostRecentWorkoutHistoryByWorkout(workouts[0].id);
+
+              //this logic is for pre-populating the history fields
               if (mostRecentWorkoutHistory == null) {
-                await AddWorkoutForm(context, true, workoutHistory, false);
+                await addWorkoutForm(context, true, workoutHistory, false);
               } else {
-                await AddWorkoutForm(
+                await addWorkoutForm(
                     context, true, mostRecentWorkoutHistory, false);
               }
-            } else {
+            }
+
+            //if we are on the Workout Profile, just use that workout
+            else {
               WorkoutHistory? mostRecentWorkoutHistory =
                   await _mostRecentWorkoutHistoryByWorkout(workout!.id);
               if (mostRecentWorkoutHistory == null) {
-                await AddWorkoutForm(context, true, workoutHistory, true);
+                await addWorkoutForm(context, true, workoutHistory, true);
               } else {
-                await AddWorkoutForm(
+                await addWorkoutForm(
                     context, true, mostRecentWorkoutHistory, true);
               }
             }
-          } else {
+          }
+
+          //show a pop-up if there are no Workouts
+          else {
             await noWorkoutsAlert();
           }
         },
@@ -473,44 +439,53 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
   }
 
-  Future<void> AddWorkoutForm(BuildContext context, bool add,
+  Future<void> addWorkoutForm(BuildContext context, bool add,
       WorkoutHistory workoutHistory, bool hasContext) async {
-    List<Workout>? types = await _readAllWorkouts();
-    List<String> typesString = [];
-    Workout curType = types![0];
+    List<Workout>? workouts = await _readAllWorkouts();
+
+    //names of all the workouts
+    List<String> workoutStrings = [];
+
+    //set to the active workout in the dropdown
+    Workout curWorkout = workouts![0];
 
     if (workout != null) {
-      for (var i = 0; i < types.length; i++) {
-        typesString.add(types[i].name);
-        if (workout!.id == types[i].id) {
-          workout_index = i;
+      for (var i = 0; i < workouts.length; i++) {
+        workoutStrings.add(workouts[i].name);
+        if (workout!.id == workouts[i].id) {
+          workoutIndex = i;
         }
       }
-      curType = workout!;
+      curWorkout = workout!;
     } else {
-      for (var i = 0; i < types.length; i++) {
-        typesString.add(types[i].name);
-        if (workoutHistory.workoutId == types[i].id) {
-          workout_index = i;
-          curType = types[i];
+      for (var i = 0; i < workouts.length; i++) {
+        workoutStrings.add(workouts[i].name);
+        if (workoutHistory.workoutId == workouts[i].id) {
+          workoutIndex = i;
+          curWorkout = workouts[i];
         }
       }
     }
 
+    //default all of the form fields if there was history
     TextEditingController routineController = TextEditingController(
-        text: workout != null ? workout!.name : typesString[0]);
-    TextEditingController weightController =
-        TextEditingController(text: workoutHistory.weight == 0 ? null : workoutHistory.weight.toString());
-    TextEditingController timerController =
-        TextEditingController(text:workoutHistory.timer == 0 ? null : workoutHistory.timer.toString());
-    TextEditingController setController =
-        TextEditingController(text: workoutHistory.sets == 0 ? null :workoutHistory.sets.toString());
-    TextEditingController repController =
-        TextEditingController(text: workoutHistory.reps == 0 ? null :workoutHistory.reps.toString());
+        text: workout != null ? workout!.name : workoutStrings[0]);
+    TextEditingController weightController = TextEditingController(
+        text: workoutHistory.weight == 0
+            ? null
+            : workoutHistory.weight.toString());
+    TextEditingController timerController = TextEditingController(
+        text:
+            workoutHistory.timer == 0 ? null : workoutHistory.timer.toString());
+    TextEditingController setController = TextEditingController(
+        text: workoutHistory.sets == 0 ? null : workoutHistory.sets.toString());
+    TextEditingController repController = TextEditingController(
+        text: workoutHistory.reps == 0 ? null : workoutHistory.reps.toString());
     DateTime myDateTime =
         add ? DateTime.now() : DateTime.parse(workoutHistory.date);
     TextEditingController dateController = TextEditingController(
         text: DateFormat('yyyy/MM/dd').format(myDateTime));
+
     return await showDialog(
       context: context,
       builder: (context) {
@@ -525,36 +500,39 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    //grab the list of workouts for the dropdown
                     FutureBuilder<List<Workout>?>(
-                        future: workouts,
+                        future: _workouts,
                         builder: (context, projectSnap) {
                           if (projectSnap.hasData) {
+                            //if we are updating the record the dropdown should not be clickable
                             return IgnorePointer(
                               ignoring: !add || hasContext,
                               child: DropdownButton<String>(
                                 isExpanded: true,
-                                value: projectSnap.data![workout_index].name,
+                                value: projectSnap.data![workoutIndex].name,
                                 icon: add
-                                    ? Icon(UniconsLine.angle_down)
-                                    : Icon(null),
+                                    ? const Icon(UniconsLine.angle_down)
+                                    : const Icon(null),
                                 elevation: 16,
                                 style: add
-                                    ? TextStyle(color: Colors.white)
-                                    : TextStyle(color: Colors.grey),
+                                    ? const TextStyle(color: Colors.white)
+                                    : const TextStyle(color: Colors.grey),
                                 underline: Container(
                                   height: 2,
                                   color: Colors.white,
                                 ),
                                 onChanged: (String? newValue) async {
+                                  //need to save the index for the new dropdown selection
                                   int i = await updateWorkoutIndex(newValue);
 
-                                  //gwt the most recent workout history for the new value
+                                  //gwe the most recent workout history for the new value
                                   WorkoutHistory? mostRecentWorkoutHistory =
                                       await _mostRecentWorkoutHistoryByWorkout(
                                           projectSnap.data![i].id);
 
                                   setState(() {
-                                    //if there is history, update all of cnotroller values
+                                    //if there is history, update all of controller values
                                     if (mostRecentWorkoutHistory != null) {
                                       weightController.text =
                                           mostRecentWorkoutHistory.weight
@@ -575,9 +553,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                                       repController.text = "";
                                     }
                                     routineController.text = newValue!;
-                                    //UpdateIndex(newValue);
-                                    curType = projectSnap.data![i];
-                                    log(curType.name);
+                                    curWorkout = projectSnap.data![i];
                                   });
                                 },
                                 items: projectSnap.data!
@@ -597,9 +573,11 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                             );
                           }
                         }),
+
+                    //display each history based on the workout type with empty validations
                     Visibility(
-                      visible: curType.type == WorkoutType.strength.index ||
-                          curType.type == WorkoutType.both.index,
+                      visible: curWorkout.type == WorkoutType.strength.index ||
+                          curWorkout.type == WorkoutType.both.index,
                       child: TextFormField(
                         controller: weightController,
                         validator: (value) {
@@ -614,8 +592,8 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                       ),
                     ),
                     Visibility(
-                      visible: curType.type == WorkoutType.cardio.index ||
-                          curType.type == WorkoutType.both.index,
+                      visible: curWorkout.type == WorkoutType.cardio.index ||
+                          curWorkout.type == WorkoutType.both.index,
                       child: TextFormField(
                         controller: timerController,
                         validator: (value) {
@@ -630,7 +608,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                       ),
                     ),
                     Visibility(
-                      visible: curType.type == WorkoutType.strength.index,
+                      visible: curWorkout.type == WorkoutType.strength.index,
                       child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -698,8 +676,10 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
               ),
               TextButton(
                 onPressed: () async {
+                  //verify form validations
                   if (_formKey.currentState!.validate()) {
                     if (!add) {
+                      //for updating existing workout history records
                       workoutHistory.workoutName = routineController.text;
                       workoutHistory.date = myDateTime.toString();
                       workoutHistory.sets = int.parse(setController.text.isEmpty
@@ -718,12 +698,13 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                               : timerController.text);
                       _updateWorkoutHistory(workoutHistory);
                     } else {
-                      int typeId = -1;
+                      //on add, get relevant info from the dropdown selection
+                      int workoutId = -1;
                       int workoutType = -1;
-                      for (var i = 0; i < types.length; i++) {
-                        if (types[i].name == routineController.text) {
-                          typeId = types[i].id;
-                          workoutType = types[i].type;
+                      for (var i = 0; i < workouts.length; i++) {
+                        if (workouts[i].name == routineController.text) {
+                          workoutId = workouts[i].id;
+                          workoutType = workouts[i].type;
                         }
                       }
                       _saveWorkoutHistory(
@@ -742,15 +723,16 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           double.parse(timerController.text.isEmpty
                               ? "0"
                               : timerController.text),
-                          typeId);
+                          workoutId);
                     }
+
+                    //update the workout history list, and reset the index
                     setState(() {
-                      workout_history_list_filtered = _workoutHistoryByDates(_selectedDateRange!);
-                      //workout_history_list = workout_history_list_filtered;
-                      filter_index = 0;
+                      _workoutHistory =
+                          _workoutHistoryByDates(_selectedDateRange!);
+                      filterIndex = 0;
                     });
                     Navigator.of(context).pop();
-                    //(context as Element).reassemble();
                   }
                 },
                 child: const Text("Save"),
@@ -762,29 +744,31 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
   }
 
-  Widget buildWorkoutCard(BuildContext context, workoutHistory, types) {
-    WorkoutType? cat = null;
-    for (var i = 0; i < types.length; i++) {
-      if (workoutHistory.workoutId == types[i].id) {
-        cat = WorkoutType.values[types[i].type];
-        log(workoutTypeString(cat));
+  Widget buildWorkoutCard(BuildContext context, workoutHistory, workout) {
+    WorkoutType? type;
+    for (var i = 0; i < workout.length; i++) {
+      if (workoutHistory.workoutId == workout[i].id) {
+        type = WorkoutType.values[workout[i].type];
+        log(workoutTypeString(type));
       }
     }
-    switch (cat) {
+
+    //build a card depending on the type of workout
+    switch (type) {
+      case null:
+        return const SizedBox.shrink();
       case WorkoutType.strength:
         return Container(
           margin: const EdgeInsets.all(0),
-          //height: 42,
           child: Card(
             child: ListTile(
               onTap: () async {
-                await AddWorkoutForm(context, false, workoutHistory, true);
+                await addWorkoutForm(context, false, workoutHistory, true);
               },
               onLongPress: () async {
                 await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
-                  workout_history_list_filtered = _readAllWorkoutHistory();
-                  //workout_history_list = workout_history_list_filtered;
+                  _workoutHistory = _readAllWorkoutHistory();
                 });
               },
               title: Column(
@@ -796,7 +780,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                         Text('${workoutHistory.workoutName} '),
                         const Spacer(),
                         Text(
-                          DateFormat('yyyy/MM/dd') // hh:mm a
+                          DateFormat('yyyy/MM/dd')
                               .format(DateTime.parse(workoutHistory.date)),
                           style: const TextStyle(fontSize: 10),
                         ),
@@ -804,18 +788,16 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     ),
                   ),
                   const Divider(),
-                  Container(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Text('${workoutHistory.weight.toString()} LBS'),
-                          const Spacer(),
-                          Text('${workoutHistory.sets.toString()} Sets '),
-                          const Spacer(),
-                          Text('${workoutHistory.reps.toString()} Reps'),
-                        ],
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Text('${workoutHistory.weight.toString()} LBS'),
+                        const Spacer(),
+                        Text('${workoutHistory.sets.toString()} Sets '),
+                        const Spacer(),
+                        Text('${workoutHistory.reps.toString()} Reps'),
+                      ],
                     ),
                   ),
                 ],
@@ -826,17 +808,15 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
       case WorkoutType.cardio:
         return Container(
           margin: const EdgeInsets.all(0),
-          //height: 42,
           child: Card(
             child: ListTile(
               onTap: () async {
-                await AddWorkoutForm(context, false, workoutHistory, true);
+                await addWorkoutForm(context, false, workoutHistory, true);
               },
               onLongPress: () async {
                 await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
-                  workout_history_list_filtered = _readAllWorkoutHistory();
-                  //workout_history_list = workout_history_list_filtered;
+                  _workoutHistory = _readAllWorkoutHistory();
                 });
               },
               title: Column(
@@ -848,7 +828,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                         Text('${workoutHistory.workoutName} '),
                         const Spacer(),
                         Text(
-                          DateFormat('yyyy/MM/dd') // hh:mm a
+                          DateFormat('yyyy/MM/dd')
                               .format(DateTime.parse(workoutHistory.date)),
                           style: const TextStyle(fontSize: 10),
                         ),
@@ -856,15 +836,13 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     ),
                   ),
                   const Divider(),
-                  Container(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Duration: ${workoutHistory.timer.toString()}'),
-                        ],
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Duration: ${workoutHistory.timer.toString()}'),
+                      ],
                     ),
                   ),
                 ],
@@ -875,17 +853,15 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
       case WorkoutType.both:
         return Container(
           margin: const EdgeInsets.all(0),
-          //height: 42,
           child: Card(
             child: ListTile(
               onTap: () async {
-                await AddWorkoutForm(context, false, workoutHistory, true);
+                await addWorkoutForm(context, false, workoutHistory, true);
               },
               onLongPress: () async {
                 await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
-                  workout_history_list_filtered = _readAllWorkoutHistory();
-                  //workout_history_list = workout_history_list_filtered;
+                  _workoutHistory = _readAllWorkoutHistory();
                 });
               },
               title: Column(
@@ -897,7 +873,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                         Text('${workoutHistory.workoutName} '),
                         const Spacer(),
                         Text(
-                          DateFormat('yyyy/MM/dd') // hh:mm a
+                          DateFormat('yyyy/MM/dd')
                               .format(DateTime.parse(workoutHistory.date)),
                           style: const TextStyle(fontSize: 10),
                         ),
@@ -905,16 +881,14 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     ),
                   ),
                   const Divider(),
-                  Container(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Text('Duration: ${workoutHistory.timer.toString()}'),
-                          const Spacer(),
-                          Text('${workoutHistory.weight.toString()} LBS'),
-                        ],
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Text('Duration: ${workoutHistory.timer.toString()}'),
+                        const Spacer(),
+                        Text('${workoutHistory.weight.toString()} LBS'),
+                      ],
                     ),
                   ),
                 ],
@@ -923,22 +897,21 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
           ),
         );
     }
-    return const SizedBox.shrink();
   }
 }
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({Key? key}) : super(key: key);
-  //Workout(key) : super(key: key);
   @override
   State<WorkoutPage> createState() => _WorkoutPageState();
 }
 
 class _WorkoutPageState extends State<WorkoutPage> {
-  //List<WorkoutRoutine>? workouts =  _getAll();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   Future<List<Workout>?> workouts = _readAllWorkouts();
+
+  //needed for name duplicate validation
   bool inAsyncCall = false;
   bool isInvalidName = false;
 
@@ -946,11 +919,9 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
   @override
   Widget build(BuildContext context) {
-    //log(workouts!.length.toString());
     return Scaffold(
       drawer: const Drawer(),
-      body: Container(
-          child: Column(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
@@ -959,6 +930,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
               builder: (context, projectSnap) {
                 if (projectSnap.hasData) {
                   return Column(children: [
+                    //search bar to filter list by name
                     TextField(
                       controller: searchController,
                       decoration: const InputDecoration(
@@ -978,12 +950,15 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         });
                       },
                     ),
+
+                    //list of workouts
                     Expanded(
                       child: ListView.builder(
                           padding: const EdgeInsets.only(bottom: 100),
                           itemCount: projectSnap.data?.length,
                           itemBuilder: (BuildContext context, int index) =>
-                              buildTypeCard(context, index, projectSnap.data)),
+                              buildWorkoutCard(
+                                  context, index, projectSnap.data)),
                     ),
                   ]);
                 } else {
@@ -999,14 +974,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
             ),
           )
         ],
-      )),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          //Navigator.push( context, MaterialPageRoute( builder: (context) => Workout()), ).then((value) => setState(() {}));
           Workout workout = Workout();
           workout.name = "";
           workout.type = 1;
-          await AddTypeForm(
+          await addWorkoutForm(
               context, true, false, WorkoutType.strength.index, workout);
         },
         tooltip: 'Add Workout',
@@ -1016,20 +990,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
     );
   }
 
-  Widget myRadioButton(TextEditingController radioController) {
-    return Radio(
-      value: radioController.text,
-      groupValue: radioController.text,
-      onChanged: (value) {
-        setState(
-          () {
-            radioController.text = value.toString();
-          },
-        );
-      },
-    );
-  }
-
+  //get string for validation message
   String? nameValidator(String? name) {
     if (name!.isEmpty) {
       return "Empty";
@@ -1043,22 +1004,22 @@ class _WorkoutPageState extends State<WorkoutPage> {
     return null;
   }
 
-  Future<void> AddTypeForm(BuildContext context, bool add, bool lock,
-      int category, Workout type) async {
+  Future<void> addWorkoutForm(BuildContext context, bool add, bool lock,
+      int typeIndex, Workout type) async {
+    //default the name
     TextEditingController typeController =
         TextEditingController(text: type.name);
 
-    //run validators on reload
+    //default a workout type
+    int? typeIndexController = typeIndex;
 
-    // TextEditingController categoryController = TextEditingController(
-    //     text: add ? "Yes" : (type.workoutEnum == 1 ? "Yes" : "No"));
-    int? categoryController = category;
     return await showDialog(
       context: context,
       builder: (context) {
+        //widget for name duplicate validation
         return ModalProgressHUD(
           opacity: .5,
-          progressIndicator: CircularProgressIndicator(),
+          progressIndicator: const CircularProgressIndicator(),
           inAsyncCall: inAsyncCall,
           child: SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
@@ -1071,22 +1032,25 @@ class _WorkoutPageState extends State<WorkoutPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      //name field with validations
                       TextFormField(
                         controller: typeController,
                         validator: nameValidator,
                         decoration: const InputDecoration(hintText: "Workout"),
                       ),
+
+                      //radio buttons to set workout type. Locked if updating
                       RadioListTile<int>(
                         value: WorkoutType.strength.index,
-                        groupValue: categoryController,
-                        title: Text("Strength"),
+                        groupValue: typeIndexController,
+                        title: const Text("Strength"),
                         onChanged: lock
                             ? null
                             : (value) {
                                 setNewState(() {
-                                  categoryController =
+                                  typeIndexController =
                                       WorkoutType.strength.index;
-                                  log(categoryController.toString());
+                                  log(typeIndexController.toString());
                                 });
                               },
                         activeColor: Colors.green,
@@ -1094,14 +1058,15 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       ),
                       RadioListTile<int>(
                         value: WorkoutType.cardio.index,
-                        groupValue: categoryController,
-                        title: Text("Cardio"),
+                        groupValue: typeIndexController,
+                        title: const Text("Cardio"),
                         onChanged: lock
                             ? null
                             : (value) {
                                 setNewState(() {
-                                  categoryController = WorkoutType.cardio.index;
-                                  log(categoryController.toString());
+                                  typeIndexController =
+                                      WorkoutType.cardio.index;
+                                  log(typeIndexController.toString());
                                 });
                               },
                         activeColor: Colors.green,
@@ -1109,14 +1074,14 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       ),
                       RadioListTile<int>(
                         value: WorkoutType.both.index,
-                        groupValue: categoryController,
-                        title: Text("Both"),
+                        groupValue: typeIndexController,
+                        title: const Text("Both"),
                         onChanged: lock
                             ? null
                             : (value) {
                                 setNewState(() {
-                                  categoryController = WorkoutType.both.index;
-                                  log(categoryController.toString());
+                                  typeIndexController = WorkoutType.both.index;
+                                  log(typeIndexController.toString());
                                 });
                               },
                         activeColor: Colors.green,
@@ -1134,17 +1099,22 @@ class _WorkoutPageState extends State<WorkoutPage> {
                   ),
                   TextButton(
                     onPressed: () async {
+                      //verify and commit the validation changes on save
                       if (_formKey.currentState!.validate()) {
                         _formKey.currentState!.save();
+
+                        //when this is true, we wait for name duplicate validation
                         setNewState(() {
                           inAsyncCall = true;
                         });
+
                         // dismiss keyboard during async call
                         FocusScope.of(context).requestFocus(new FocusNode());
 
                         bool isDupe =
                             await _workoutNameExists(typeController.text);
 
+                        //finish validation and exit async call
                         setNewState(() {
                           if (isDupe) {
                             isInvalidName = true;
@@ -1156,14 +1126,14 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         if (!isInvalidName) {
                           if (!add) {
                             type.name = typeController.text;
-                            type.type = categoryController!;
+                            type.type = typeIndexController!;
                             _updateWorkout(type);
                             _updateWorkoutHistoryByWorkout(
                                 type.id, typeController.text);
                           } else {
                             _saveWorkout(
                               typeController.text,
-                              categoryController!,
+                              typeIndexController!,
                             );
                           }
                           setState(() {
@@ -1172,8 +1142,6 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
                           Navigator.of(context).pop();
                         }
-
-                        //(context as Element).reassemble();
                       }
                     },
                     child: const Text("Save"),
@@ -1198,7 +1166,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
             child: ListBody(
               children: const <Widget>[
                 Text('This workout has history.'),
-                Text('Please delete all history before deleting workouts.'),
+                Text('Please delete all history and remove from all routines before deleting workouts.'),
               ],
             ),
           ),
@@ -1215,39 +1183,44 @@ class _WorkoutPageState extends State<WorkoutPage> {
     );
   }
 
-  Future<void> updateOptions(Workout type) {
+  //update and delete are both on long press
+  Future<void> updateOptions(Workout workout) {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          //title: const Text('Can Not Delete'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
                 const Divider(),
                 TextButton(
-                  child: Text('Update'),
+                  child: const Text('Update'),
                   onPressed: () async {
                     Navigator.of(context).pop();
                     List<WorkoutHistory>? workoutsForType =
-                        await _workoutHistoryByWorkout(type.id);
+                        await _workoutHistoryByWorkout(workout.id);
                     if (workoutsForType == null) {
-                      await AddTypeForm(context, false, false, type.type, type);
+                      await addWorkoutForm(
+                          context, false, false, workout.type, workout);
                     } else {
-                      await AddTypeForm(context, false, true, type.type, type);
+                      await addWorkoutForm(
+                          context, false, true, workout.type, workout);
                     }
                   },
                 ),
                 const Divider(),
                 TextButton(
-                  child: Text('Delete'),
+                  child: const Text('Delete'),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    List<WorkoutHistory>? workoutsForType =
-                        await _workoutHistoryByWorkout(type.id);
-                    if (workoutsForType == null) {
-                      await _deleteWorkout(type.id);
+                    List<WorkoutHistory>? historyForWorkout =
+                        await _workoutHistoryByWorkout(workout.id);
+
+                    List<RoutineEntry>? routineEntriesForWorkout =
+                        await _routineEntryByWorkout(workout.id);
+                    if (historyForWorkout == null && routineEntriesForWorkout == null) {
+                      await _deleteWorkout(workout.id);
                     } else {
                       return cantDeleteAlert();
                     }
@@ -1273,20 +1246,22 @@ class _WorkoutPageState extends State<WorkoutPage> {
     );
   }
 
-  Widget buildTypeCard(BuildContext context, int index, types) {
+  Widget buildWorkoutCard(BuildContext context, int index, workouts) {
     return Container(
       margin: const EdgeInsets.all(0),
       //height: 42,
       child: Card(
         child: ListTile(
+          //navigate to profile on tap
           onTap: () async {
             Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => WorkoutProfile(type: types![index])));
+                    builder: (context) =>
+                        WorkoutProfile(workout: workouts![index])));
           },
           onLongPress: () async {
-            return updateOptions(types[index]);
+            return updateOptions(workouts[index]);
           },
           title: Column(
             children: [
@@ -1294,10 +1269,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
                 padding: const EdgeInsets.all(8.0),
                 child: Row(
                   children: [
-                    Text('${types![index].name} '),
+                    Text('${workouts![index].name} '),
                     const Spacer(),
                     Text(workoutTypeString(
-                        WorkoutType.values[types![index].type]))
+                        WorkoutType.values[workouts![index].type]))
                   ],
                 ),
               ),
@@ -1310,28 +1285,29 @@ class _WorkoutPageState extends State<WorkoutPage> {
 }
 
 class WorkoutProfile extends StatefulWidget {
-  final Workout type;
-  const WorkoutProfile({Key? key, required this.type}) : super(key: key);
+  final Workout workout;
+  const WorkoutProfile({Key? key, required this.workout}) : super(key: key);
 
   @override
-  State<WorkoutProfile> createState() => _WorkoutProfileState(type: this.type);
+  State<WorkoutProfile> createState() =>
+      _WorkoutProfileState(workout: this.workout);
 }
 
 class _WorkoutProfileState extends State<WorkoutProfile> {
-  late Workout type;
-  _WorkoutProfileState({required this.type});
+  late Workout workout;
+  _WorkoutProfileState({required this.workout});
 
   DateTimeRange dateTimeRange = weekRange();
   @override
   Widget build(BuildContext context) {
-    log("current workout is ${type.name}");
+    log("current workout is ${workout.name}");
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
           title: Text(
-            type.name,
+            workout.name,
             textAlign: TextAlign.center,
           ),
           bottom: const TabBar(tabs: <Widget>[
@@ -1361,12 +1337,9 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
         ),
         body: TabBarView(
           children: <Widget>[
-            WorkoutHistoryPage(
-              workout: type,
-            ),
-            WorkoutGraphs(
-                workout: type
-            )
+            //use same workout history page but with context this time
+            WorkoutHistoryPage(workout: workout),
+            WorkoutGraphs(workout: workout)
           ],
         ),
       ),
@@ -1382,8 +1355,9 @@ class RoutinePage extends StatefulWidget {
 }
 
 class _RoutinePageState extends State<RoutinePage> {
-  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  //also need a duplicate name validation for routines
   Future<List<Routine>?> routines = _readAllRoutines();
   bool inAsyncCall = false;
   bool isInvalidName = false;
@@ -1392,8 +1366,7 @@ class _RoutinePageState extends State<RoutinePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const Drawer(),
-      body: Container(
-          child: Column(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
@@ -1419,14 +1392,14 @@ class _RoutinePageState extends State<RoutinePage> {
             ),
           )
         ],
-      )),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           //Navigator.push( context, MaterialPageRoute( builder: (context) => Workout()), ).then((value) => setState(() {}));
           Routine routine = Routine();
           routine.name = "";
           routine.date = DateTime.now().toString();
-          await AddRoutineForm(context, true, routine);
+          await addRoutineForm(context, true, routine);
         },
         tooltip: 'Add Routine',
         child: const Icon(Icons.add),
@@ -1435,6 +1408,7 @@ class _RoutinePageState extends State<RoutinePage> {
     );
   }
 
+  //get string for name validation text
   String? nameValidator(String? name) {
     if (name!.isEmpty) {
       return "Empty";
@@ -1448,7 +1422,7 @@ class _RoutinePageState extends State<RoutinePage> {
     return null;
   }
 
-  Future<void> AddRoutineForm(
+  Future<void> addRoutineForm(
       BuildContext context, bool add, Routine routine) async {
     TextEditingController routineController =
         TextEditingController(text: routine.name);
@@ -1457,7 +1431,7 @@ class _RoutinePageState extends State<RoutinePage> {
       builder: (context) {
         return ModalProgressHUD(
           opacity: .5,
-          progressIndicator: CircularProgressIndicator(),
+          progressIndicator: const CircularProgressIndicator(),
           inAsyncCall: inAsyncCall,
           child: SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
@@ -1487,6 +1461,7 @@ class _RoutinePageState extends State<RoutinePage> {
                   ),
                   TextButton(
                     onPressed: () async {
+                      //set the async flag to check for duplicate names
                       if (_formKey.currentState!.validate()) {
                         _formKey.currentState!.save();
                         setNewState(() {
@@ -1498,6 +1473,7 @@ class _RoutinePageState extends State<RoutinePage> {
                         bool isDupe =
                             await _routineNameExists(routineController.text);
 
+                        //finish duplicate check and end the async call
                         setNewState(() {
                           if (isDupe) {
                             isInvalidName = true;
@@ -1511,8 +1487,8 @@ class _RoutinePageState extends State<RoutinePage> {
                             routine.name = routineController.text;
                             routine.date = DateTime.now().toString();
                             _updateRoutine(routine);
-                            //_updateWorkoutHistoryByWorkout(type.id, routineController.text);
                           } else {
+                            //set datetime of routine to 0 if it has never been used
                             _saveRoutine(
                               routineController.text,
                               DateTime(0),
@@ -1521,10 +1497,8 @@ class _RoutinePageState extends State<RoutinePage> {
                           setState(() {
                             routines = _readAllRoutines();
                           });
-
                           Navigator.of(context).pop();
                         }
-                        //(context as Element).reassemble();
                       }
                     },
                     child: const Text("Save"),
@@ -1544,25 +1518,24 @@ class _RoutinePageState extends State<RoutinePage> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          //title: const Text('Can Not Delete'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
                 const Divider(),
                 TextButton(
-                  child: Text('Update'),
+                  child: const Text('Update'),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    AddRoutineForm(context, false, routine);
+                    addRoutineForm(context, false, routine);
                   },
                 ),
                 const Divider(),
                 TextButton(
-                  child: Text('Delete'),
+                  child: const Text('Delete'),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    //delete routine and all entries
 
+                    //delete routine and all entries
                     var allEntries = await _routineEntryByRoutine(routine.id);
                     for (var element in allEntries!) {
                       _deleteRoutineEntry(element.id);
@@ -1593,9 +1566,9 @@ class _RoutinePageState extends State<RoutinePage> {
   Widget buildRoutineCard(BuildContext context, int index, curRoutines) {
     return Container(
       margin: const EdgeInsets.all(0),
-      //height: 42,
       child: Card(
         child: ListTile(
+          //on tap open the routine profile
           onTap: () async {
             Navigator.push(
                 context,
@@ -1642,16 +1615,20 @@ class RoutineProfile extends StatefulWidget {
 }
 
 class _RoutineProfileState extends State<RoutineProfile> {
-  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   late Routine routine;
   _RoutineProfileState({required this.routine});
 
+  //need multiple forms to validate each workout separately
   List<GlobalKey<FormState>> formKeys = [];
+
+  //used to hide the fields when each card is done
   List<bool> cardsCompleted = [];
+
   late Future<List<Workout>?> workouts;
 
-  Widget OrderedWorkoutList() {
+  Widget orderedWorkoutList() {
     Future<List<RoutineEntry>?> routineEntries =
         _routineEntryByRoutine(routine.id);
     return Scaffold(
@@ -1660,9 +1637,10 @@ class _RoutineProfileState extends State<RoutineProfile> {
           builder: (context, AsyncSnapshot<List<RoutineEntry>?> snapshot) {
             if (snapshot.hasData) {
               return ReorderableListView(
-                //padding: const EdgeInsets.all(8.0),
                 children: <Widget>[
                   for (int index = 0; index < snapshot.data!.length; index += 1)
+
+                    //swipe to delete routine entries
                     Dismissible(
                       key: UniqueKey(),
                       background: Container(color: Colors.redAccent),
@@ -1680,13 +1658,15 @@ class _RoutineProfileState extends State<RoutineProfile> {
                       },
                       child: Card(
                         child: ListTile(
-                          trailing: Icon(UniconsLine.draggabledots),
+                          trailing: const Icon(UniconsLine.draggabledots),
                           tileColor: Colors.black12,
                           title: Text('${snapshot.data![index].workoutName}'),
                         ),
                       ),
                     ),
                 ],
+
+                //on reordering the list, save the index valiues and update the list view
                 onReorder: (int oldIndex, int newIndex) {
                   setState(() {
                     if (oldIndex < newIndex) {
@@ -1714,9 +1694,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
           }),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          //Navigator.push( context, MaterialPageRoute( builder: (context) => Workout()), ).then((value) => setState(() {}));
-
-          await AddWorkoutEntryForm(context);
+          await addWorkoutEntryForm(context);
         },
         tooltip: 'Add Workout',
         child: const Icon(Icons.add),
@@ -1724,6 +1702,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
       ),
     );
   }
+
   Future<void> noWorkoutsAlert() {
     return showDialog<void>(
       context: context,
@@ -1735,7 +1714,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
             child: ListBody(
               children: const <Widget>[
                 Text('No workouts have been added.'),
-                Text('Please add workouts before adding history.'),
+                Text('Please add workouts before building Routines.'),
               ],
             ),
           ),
@@ -1752,9 +1731,9 @@ class _RoutineProfileState extends State<RoutineProfile> {
     );
   }
 
-  Future<void> AddWorkoutEntryForm(BuildContext context) async {
+  Future<void> addWorkoutEntryForm(BuildContext context) async {
     List<Workout>? workouts = await _readAllWorkouts();
-    if(workouts == null){
+    if (workouts == null) {
       return noWorkoutsAlert();
     }
 
@@ -1777,9 +1756,9 @@ class _RoutineProfileState extends State<RoutineProfile> {
                     DropdownButton<Workout>(
                       isExpanded: true,
                       value: workout,
-                      icon: Icon(UniconsLine.angle_down),
+                      icon: const Icon(UniconsLine.angle_down),
                       elevation: 16,
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                       underline: Container(
                         height: 2,
                         color: Colors.white,
@@ -1810,6 +1789,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
               ),
               TextButton(
                 onPressed: () async {
+                  //when saving, need to set the order field correctly
                   if (_formKey.currentState!.validate()) {
                     var temp = await _routineEntryByRoutine(routine.id);
                     if (temp == null) {
@@ -1819,9 +1799,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
                       _saveRoutineEntry(
                           workout.name, workout.id, routine.id, temp.length);
                     }
-                    setState(() {
-                      //update routine entry list
-                    });
+                    setState(() {});
                     Navigator.of(context).pop();
                   }
                 },
@@ -1834,15 +1812,12 @@ class _RoutineProfileState extends State<RoutineProfile> {
     );
   }
 
-  Widget ExecuteWorkoutEntries(BuildContext context) {
-    //Future<List<RoutineEntry>?> routineEntries = _routineEntryByRoutine(routine.id);
+  Widget executeWorkoutEntries(BuildContext context) {
     workouts = _workoutsByRoutine(routine.id);
-
     formKeys = [];
     cardsCompleted = [];
-    //need to get the workouts from the entries in order, then construct a list of execute workout cards
-    //no clue how to indicate that all of them are done
 
+    //get the workouts from the entries in order, then construct a list of execute workout cards
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -1850,218 +1825,208 @@ class _RoutineProfileState extends State<RoutineProfile> {
           routine.name,
           textAlign: TextAlign.center,
         ),
-        // actions: [
-        //   IconButton(
-        //       onPressed: () async {
-        //         Navigator.push(context,
-        //             MaterialPageRoute(builder: (context) => ExecuteWorkoutEntries(context)));
-        //       },
-        //       icon: Icon(Icons.save)
-        //   )
-        // ],
       ),
-      body: Container(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: FutureBuilder<List<Workout>?>(
-                future: workouts,
-                builder: (context, projectSnap) {
-                  if (projectSnap.hasData) {
-                    for (int i = 0; i < projectSnap.data!.length; i++) {
-                      formKeys.add(GlobalKey<FormState>());
-                      cardsCompleted.add(false);
-                    }
-                    log(cardsCompleted.toString());
-                    return ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 10, top: 10),
-                        itemCount: projectSnap.data?.length,
-                        itemBuilder: (BuildContext context, int index) =>
-                            ExecuteWorkoutCard(
-                                projectSnap.data![index], index));
-                  } else {
-                    return const Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        'No Workouts for this Routine',
-                        textAlign: TextAlign.center,
-                      ),
-                    );
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: FutureBuilder<List<Workout>?>(
+              future: workouts,
+              builder: (context, projectSnap) {
+                if (projectSnap.hasData) {
+                  for (int i = 0; i < projectSnap.data!.length; i++) {
+                    formKeys.add(GlobalKey<FormState>());
+                    cardsCompleted.add(false);
                   }
-                },
-              ),
-            )
-          ],
-        ),
+                  return ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 10, top: 10),
+                      itemCount: projectSnap.data?.length,
+                      itemBuilder: (BuildContext context, int index) =>
+                          executeWorkoutCard(projectSnap.data![index], index));
+                } else {
+                  return const Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'No Workouts for this Routine',
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+              },
+            ),
+          )
+        ],
       ),
     );
   }
 
-  Widget ExecuteWorkoutCard(Workout workout, int index) {
+  Widget executeWorkoutCard(Workout workout, int index) {
     TextEditingController weightController = TextEditingController();
     TextEditingController timerController = TextEditingController();
     TextEditingController setController = TextEditingController();
     TextEditingController repController = TextEditingController();
 
+    //use similar logic to workout history page to validate the card and display the fields
     Future<WorkoutHistory?> recentHistory =
         _mostRecentWorkoutHistoryByWorkout(workout.id);
     return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
       return FutureBuilder<WorkoutHistory?>(
-          future: recentHistory,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              weightController.text = snapshot.data!.weight.toString();
-              timerController.text = snapshot.data!.timer.toString();
-              setController.text = snapshot.data!.sets.toString();
-              repController.text = snapshot.data!.reps.toString();
-            } else {
-              weightController.text = "";
-              timerController.text = "";
-              setController.text = "";
-              repController.text = "";
-            }
-            return Card(
-                child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: formKeys[index],
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      workout.name,
-                      textAlign: TextAlign.center,
+        future: recentHistory,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            weightController.text = snapshot.data!.weight.toString();
+            timerController.text = snapshot.data!.timer.toString();
+            setController.text = snapshot.data!.sets.toString();
+            repController.text = snapshot.data!.reps.toString();
+          } else {
+            weightController.text = "";
+            timerController.text = "";
+            setController.text = "";
+            repController.text = "";
+          }
+          return Card(
+              child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: formKeys[index],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    workout.name,
+                    textAlign: TextAlign.center,
+                  ),
+                  const Divider(),
+                  if (cardsCompleted[index])
+                    const Text("Completed")
+                  else
+                    const SizedBox.shrink(),
+                  Visibility(
+                    visible: (workout.type == WorkoutType.strength.index ||
+                            workout.type == WorkoutType.both.index) &&
+                        !cardsCompleted[index],
+                    child: TextFormField(
+                      controller: weightController,
+                      validator: (value) {
+                        return value!.isNotEmpty ? null : "Empty";
+                      },
+                      decoration: const InputDecoration(
+                          hintText: "Weight", labelText: "Weight *"),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: <TextInputFormatter>[
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                      ],
                     ),
-                    Divider(),
-                    if (cardsCompleted[index])
-                      Text("Completed")
-                    else
-                      SizedBox.shrink(),
-                    Visibility(
-                      visible: (workout.type == WorkoutType.strength.index ||
-                              workout.type == WorkoutType.both.index) &&
-                          !cardsCompleted[index],
-                      child: TextFormField(
-                        controller: weightController,
-                        validator: (value) {
-                          return value!.isNotEmpty ? null : "Empty";
-                        },
-                        decoration: const InputDecoration(
-                            hintText: "Weight", labelText: "Weight *"),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: <TextInputFormatter>[
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                        ],
-                      ),
+                  ),
+                  Visibility(
+                    visible: (workout.type == WorkoutType.cardio.index ||
+                            workout.type == WorkoutType.both.index) &&
+                        !cardsCompleted[index],
+                    child: TextFormField(
+                      controller: timerController,
+                      validator: (value) {
+                        return value!.isNotEmpty ? null : "Empty";
+                      },
+                      decoration: const InputDecoration(
+                          hintText: "Duration", labelText: "Duration *"),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: <TextInputFormatter>[
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                      ],
                     ),
-                    Visibility(
-                      visible: (workout.type == WorkoutType.cardio.index ||
-                              workout.type == WorkoutType.both.index) &&
-                          !cardsCompleted[index],
-                      child: TextFormField(
-                        controller: timerController,
-                        validator: (value) {
-                          return value!.isNotEmpty ? null : "Empty";
-                        },
-                        decoration: const InputDecoration(
-                            hintText: "Duration", labelText: "Duration *"),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: <TextInputFormatter>[
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                        ],
-                      ),
-                    ),
-                    Visibility(
-                      visible: workout.type == WorkoutType.strength.index &&
-                          !cardsCompleted[index],
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            width: 50,
-                            child: TextFormField(
-                              controller: setController,
-                              validator: (value) {
-                                return value!.isNotEmpty ? null : "Empty";
-                              },
-                              decoration: const InputDecoration(
-                                  hintText: "Sets", labelText: "Sets *"),
-                              keyboardType: TextInputType.number,
-                              inputFormatters: <TextInputFormatter>[
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9]')),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            width: 50,
-                            child: TextFormField(
-                              controller: repController,
-                              validator: (value) {
-                                return value!.isNotEmpty ? null : "Empty";
-                              },
-                              decoration: const InputDecoration(
-                                  hintText: "Reps", labelText: "Reps *"),
-                              keyboardType: TextInputType.number,
-                              inputFormatters: <TextInputFormatter>[
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9]')),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Visibility(
-                      visible: !cardsCompleted[index],
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              if (formKeys[index].currentState!.validate()) {
-                                _saveWorkoutHistory(
-                                    workout.name,
-                                    workout.type,
-                                    DateTime.now(),
-                                    int.parse(setController.text.isEmpty
-                                        ? "0"
-                                        : setController.text),
-                                    int.parse(repController.text.isEmpty
-                                        ? "0"
-                                        : repController.text),
-                                    double.parse(weightController.text.isEmpty
-                                        ? "0"
-                                        : weightController.text),
-                                    double.parse(timerController.text.isEmpty
-                                        ? "0"
-                                        : timerController.text),
-                                    workout.id);
-
-                                var newRoutine = routine;
-                                newRoutine.date = DateTime.now().toString();
-                                _updateRoutine(newRoutine);
-                                setState(() {
-                                  cardsCompleted[index] = true;
-                                  workouts = _workoutsByRoutine(routine.id);
-                                });
-                              }
+                  ),
+                  Visibility(
+                    visible: workout.type == WorkoutType.strength.index &&
+                        !cardsCompleted[index],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          width: 50,
+                          child: TextFormField(
+                            controller: setController,
+                            validator: (value) {
+                              return value!.isNotEmpty ? null : "Empty";
                             },
-                            child: Text("Save"),
+                            decoration: const InputDecoration(
+                                hintText: "Sets", labelText: "Sets *"),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: <TextInputFormatter>[
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9]')),
+                            ],
                           ),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
+                        ),
+                        SizedBox(
+                          width: 50,
+                          child: TextFormField(
+                            controller: repController,
+                            validator: (value) {
+                              return value!.isNotEmpty ? null : "Empty";
+                            },
+                            decoration: const InputDecoration(
+                                hintText: "Reps", labelText: "Reps *"),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: <TextInputFormatter>[
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9]')),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Visibility(
+                    visible: !cardsCompleted[index],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            if (formKeys[index].currentState!.validate()) {
+                              _saveWorkoutHistory(
+                                  workout.name,
+                                  workout.type,
+                                  DateTime.now(),
+                                  int.parse(setController.text.isEmpty
+                                      ? "0"
+                                      : setController.text),
+                                  int.parse(repController.text.isEmpty
+                                      ? "0"
+                                      : repController.text),
+                                  double.parse(weightController.text.isEmpty
+                                      ? "0"
+                                      : weightController.text),
+                                  double.parse(timerController.text.isEmpty
+                                      ? "0"
+                                      : timerController.text),
+                                  workout.id);
+
+                              var newRoutine = routine;
+                              newRoutine.date = DateTime.now().toString();
+                              _updateRoutine(newRoutine);
+                              setState(() {
+                                cardsCompleted[index] = true;
+                                workouts = _workoutsByRoutine(routine.id);
+                              });
+                            }
+                          },
+                          child: const Text("Save"),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
               ),
-            ));
-          });
+            ),
+          ));
+        },
+      );
     });
   }
 
+  //wrap it with an appbar
   @override
   Widget build(BuildContext context) {
     log("current routine is ${routine.name}");
@@ -2078,12 +2043,12 @@ class _RoutineProfileState extends State<RoutineProfile> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => ExecuteWorkoutEntries(context)));
+                        builder: (context) => executeWorkoutEntries(context)));
               },
-              icon: Icon(UniconsLine.play))
+              icon: const Icon(UniconsLine.play))
         ],
       ),
-      body: OrderedWorkoutList(),
+      body: orderedWorkoutList(),
     );
   }
 }
@@ -2093,7 +2058,8 @@ class WorkoutGraphs extends StatefulWidget {
   const WorkoutGraphs({Key? key, required this.workout}) : super(key: key);
 
   @override
-  State<WorkoutGraphs> createState() => _WorkoutGraphsState(workout: this.workout);
+  State<WorkoutGraphs> createState() =>
+      _WorkoutGraphsState(workout: this.workout);
 }
 
 class _WorkoutGraphsState extends State<WorkoutGraphs> {
@@ -2115,11 +2081,11 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
     );
 
     if (result != null) {
-      // Rebuild the UI
       setState(() {
         _selectedDateRange = result;
 
-        workoutHistory = _workoutHistoryByWorkoutAndDates(workout.id, _selectedDateRange);
+        workoutHistory =
+            _workoutHistoryByWorkoutAndDates(workout.id, _selectedDateRange);
       });
     }
   }
@@ -2127,7 +2093,8 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
   @override
   Widget build(BuildContext context) {
     if (workout != null) {
-      workoutHistory = _workoutHistoryByWorkoutAndDates(workout.id, _selectedDateRange);
+      workoutHistory =
+          _workoutHistoryByWorkoutAndDates(workout.id, _selectedDateRange);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2136,19 +2103,19 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
             onPressed: selectDates,
             child: Text(
               "${DateFormat('yyyy/MM/dd').format(_selectedDateRange.start)} - "
-                  "${DateFormat('yyyy/MM/dd').format(_selectedDateRange.end)}",
-              style: TextStyle(color: Colors.grey, fontSize: 18),
+              "${DateFormat('yyyy/MM/dd').format(_selectedDateRange.end)}",
+              style: const TextStyle(color: Colors.grey, fontSize: 18),
             )),
-        Divider(),
+        const Divider(),
 
-        //switch case here, 3 functions instead
+        //return a list of graph cards based on the workout history and workout type
         Expanded(
           child: FutureBuilder<List<WorkoutHistory>?>(
-            future: workoutHistory ,
+            future: workoutHistory,
             builder: (context, projectSnap) {
-              Widget? graphs = _graphFeaturesByWorkoutAndDate(projectSnap.data, context);
-              if (projectSnap.hasData && graphs != null)  {
-                //return LineGraphCard(projectSnap.data![0], projectSnap.data![1]);
+              Widget? graphs =
+                  _graphFeaturesByWorkoutAndDate(projectSnap.data, context);
+              if (projectSnap.hasData && graphs != null) {
                 return graphs;
               } else {
                 return const Align(
@@ -2165,372 +2132,308 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
       ],
     );
   }
-
-  Widget LineGraphCard(List<Feature> features, List<String> dates) {
-    
-    return Card(
-      child: LineGraph(
-          features: features,
-          size: Size(400, 300) ,
-          labelX: dates,
-          labelY: ["Trend"],
-        showDescription: true,
-        graphColor: Colors.white,
-      ),
-    );
-  }
 }
 
-Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, BuildContext context) {
-  //var workoutHistory = await _workoutHistoryByWorkoutAndDates(workoutId, dateRange);
-  
-  if(workoutHistory == null || workoutHistory.isEmpty){
+Widget? _graphFeaturesByWorkoutAndDate(
+    List<WorkoutHistory>? workoutHistory, BuildContext context) {
+
+  if (workoutHistory == null || workoutHistory.isEmpty) {
     return null;
   } else {
     workoutHistory.sort((a, b) {
       return a.date.compareTo(b.date);
     });
+
+    //feature is the object that holds graph data
     List<Feature> features = [];
+
     //match case with workout type
     //get the attributes that should be graphed, and construct a feature for each
     WorkoutType type = WorkoutType.values[workoutHistory[0].workoutType];
 
-    //for width, if the width is less than the sreen width we want (400)? then do
+    //for width, if the width is less than the srceen width we want (400)? then do
     //60 width per item
-
     double graphWidth = MediaQuery.of(context).size.width - 40;
-    List<String> dates = [];
-    if(graphWidth < workoutHistory.length * 60) {
+    if (graphWidth < workoutHistory.length * 60) {
       graphWidth = workoutHistory.length * 60;
     }
-    log('type is ${workoutTypeString(type)}');
+
+    //string for the x axis display
+    List<String> dates = [];
+
+    //same process for each workout type, using different workout history attributes
     switch (type) {
       case WorkoutType.strength:
+
+        //values for each attribute to graph
         List<double> dataWeight = [];
         List<double> dataSet = [];
         List<double> dataRep = [];
 
+        //graph only goes fromm 0-1 so we need to use fractions with the max values
+        double highestWeight =
+            workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
+        double highestSet = workoutHistory
+            .reduce((a, b) => a.sets > b.sets ? a : b)
+            .sets
+            .toDouble();
+        double highestRep = workoutHistory
+            .reduce((a, b) => a.reps > b.reps ? a : b)
+            .reps
+            .toDouble();
 
-
-        double highestWeight =  workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
-        double highestSet =  workoutHistory.reduce((a, b) => a.sets > b.sets ? a : b).sets.toDouble();
-        double highestRep =  workoutHistory.reduce((a, b) => a.reps > b.reps ? a : b).reps.toDouble();
-        for(var history in workoutHistory){
+        //set the fraction values and the date values
+        for (var history in workoutHistory) {
           dataWeight.add(history.weight / highestWeight);
           dataSet.add(history.sets.toDouble() / highestSet);
           dataRep.add(history.reps.toDouble() / highestRep);
 
           dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
         }
-        log(dataWeight.toString());
-        log(dataSet.toString());
-        log(dataRep.toString());
-        features.add(Feature(
-          title: "Weight",
-          color: Colors.red,
-          data: dataWeight
-        ));
-        features.add(Feature(
-            title: "Sets",
-            color: Colors.green,
-            data: dataSet
-        ));
-        features.add(Feature(
-            title: "Reps",
-            color: Colors.purple,
-            data: dataRep
-        ));
-        log("created ${features.length} features");
 
+        features
+            .add(Feature(title: "Weight", color: Colors.red, data: dataWeight));
+        features
+            .add(Feature(title: "Sets", color: Colors.green, data: dataSet));
+        features
+            .add(Feature(title: "Reps", color: Colors.purple, data: dataRep));
 
         return SingleChildScrollView(
-          child: Column(
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text("Max Weight ${highestWeight} LBS"),
-                ),
+          child: Column(children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Weight $highestWeight LBS"),
               ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: LineGraph(
-                      features: [features[0]],
-                      size: Size(graphWidth, 400) ,
-                      labelX: dates,
-                      labelY: [(highestWeight / 2).round().toString() ,
-                        highestWeight.round().toString()],
-                      showDescription: true,
-                      graphColor: Colors.white,
-                    ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[0]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      (highestWeight / 2).round().toString(),
+                      highestWeight.round().toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
                   ),
                 ),
               ),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text("Max Sets $highestSet "),
-                ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Sets $highestSet "),
               ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: LineGraph(
-                      features: [features[1]],
-                      size: Size(graphWidth, 400) ,
-                      labelX: dates,
-                      labelY: [(highestSet / 2).round().toString() ,
-                        highestSet.round().toString()],
-                      showDescription: true,
-                      graphColor: Colors.white,
-                    ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[1]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      (highestSet / 2).round().toString(),
+                      highestSet.round().toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
                   ),
                 ),
               ),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text("Max Reps ${highestRep} "),
-                ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Reps $highestRep"),
               ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: LineGraph(
-                      features: [features[2]],
-                      size: Size(graphWidth, 400) ,
-                      labelX: dates,
-                      labelY: [(highestRep / 2).round().toString() ,
-                        highestRep.round().toString()],
-                      showDescription: true,
-                      graphColor: Colors.white,
-                    ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[2]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      (highestRep / 2).round().toString(),
+                      highestRep.round().toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
                   ),
                 ),
               ),
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text("Comparison"),
-                ),
+            ),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text("Comparison"),
               ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: LineGraph(
-                      features: features,
-                      size: Size(graphWidth, 400) ,
-                      labelX: dates,
-                      labelY: [""],
-                      showDescription: true,
-                      graphColor: Colors.white,
-                    ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: features,
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: const [""],
+                    showDescription: true,
+                    graphColor: Colors.white,
                   ),
                 ),
               ),
-            ]
-          ),
+            ),
+          ]),
         );
-        //return features;
+      //return features;
       case WorkoutType.cardio:
         List<double> dataDuration = [];
-        double highestDuration =  workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
-        for(var history in workoutHistory){
-          dataDuration.add(history.timer/ highestDuration);
+        double highestDuration =
+            workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
+        for (var history in workoutHistory) {
+          dataDuration.add(history.timer / highestDuration);
 
           dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
         }
-        features.add(Feature(
-            title: "Duration",
-            color: Colors.blue,
-            data: dataDuration
-        ));
+        features.add(
+            Feature(title: "Duration", color: Colors.blue, data: dataDuration));
         return SingleChildScrollView(
-          child: Column(
-              children: [
-
-                 Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text("Max Duration $highestDuration "),
+          child: Column(children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Duration $highestDuration "),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: features,
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      (highestDuration / 2).round().toString(),
+                      highestDuration.round().toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
                   ),
                 ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: LineGraph(
-                        features: features,
-                        size: Size(graphWidth, 400) ,
-                        labelX: dates,
-                        labelY: [(highestDuration / 2).round().toString() ,
-                          highestDuration.round().toString()],
-                        showDescription: true,
-                        graphColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ]
-          ),
+              ),
+            ),
+          ]),
         );
       case WorkoutType.both:
         List<double> dataWeight = [];
         List<double> dataDuration = [];
-        double highestWeight =  workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
-        double highestDuration =  workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
-        for(var history in workoutHistory){
+        double highestWeight =
+            workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
+        double highestDuration =
+            workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
+        for (var history in workoutHistory) {
           dataWeight.add(history.weight / highestWeight);
           dataDuration.add(history.timer / highestDuration);
 
           dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
         }
-        features.add(Feature(
-            title: "Weight",
-            color: Colors.red,
-            data: dataWeight
-        ));
-        features.add(Feature(
-            title: "Duration",
-            color: Colors.blue,
-            data: dataDuration
-        ));
+        features
+            .add(Feature(title: "Weight", color: Colors.red, data: dataWeight));
+        features.add(
+            Feature(title: "Duration", color: Colors.blue, data: dataDuration));
         return SingleChildScrollView(
-          child: Column(
-              children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text("Max Weight ${highestWeight} LBS"),
+          child: Column(children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Weight $highestWeight LBS"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[0]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      (highestWeight / 2).round().toString(),
+                      highestWeight.round().toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
                   ),
                 ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: LineGraph(
-                        features: [features[0]],
-                        size: Size(graphWidth, 400) ,
-                        labelX: dates,
-                        labelY: [(highestWeight / 2).round().toString() ,
-                          highestWeight.round().toString()],
-                        showDescription: true,
-                        graphColor: Colors.white,
-                      ),
-                    ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Duration $highestDuration"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[1]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      (highestDuration / 2).round().toString(),
+                      highestDuration.round().toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
                   ),
                 ),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text("Max Duration $highestDuration "),
+              ),
+            ),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text("Comparison"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: features,
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: const [""],
+                    showDescription: true,
+                    graphColor: Colors.white,
                   ),
                 ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: LineGraph(
-                        features: [features[1]],
-                        size: Size(graphWidth, 400) ,
-                        labelX: dates,
-                        labelY: [(highestDuration / 2).round().toString() ,
-                          highestDuration.round().toString()],
-                        showDescription: true,
-                        graphColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text("Comparison"),
-                  ),
-                ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: LineGraph(
-                        features: features,
-                        size: Size(graphWidth, 400) ,
-                        labelX: dates,
-                        labelY: [""],
-                        showDescription: true,
-                        graphColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ]
-          ),
+              ),
+            ),
+          ]),
         );
     }
-  }
-}
-
-Future<List<String>?> _graphDatesByWorkoutAndDate(int workoutId, DateTimeRange dateRange) async{
-  var workoutHistory = await _workoutHistoryByWorkoutAndDates(workoutId, dateRange);
-
-  if(workoutHistory == null){
-    return null;
-  } else {
-    workoutHistory.sort((a, b) {
-      return a.date.compareTo(b.date);
-    });
-    List<String> dates = [];
-    for(var history in workoutHistory){
-      dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
-    }
-    return dates;
-  }
-}
-
-Future<List<String>?> _graphWeightByWorkoutAndDate(int workoutId, DateTimeRange dateRange) async{
-  var workoutHistory = await _workoutHistoryByWorkoutAndDates(workoutId, dateRange);
-
-  if(workoutHistory == null){
-    return null;
-  } else {
-    workoutHistory.sort((a, b) {
-      return a.date.compareTo(b.date);
-    });
-    List<String> weights = [];
-    for(var history in workoutHistory){
-      weights.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
-    }
-    return weights;
-  }
-}
-
-Future<List<String>?> _graphDurationByWorkoutAndDate(int workoutId, DateTimeRange dateRange) async{
-  var workoutHistory = await _workoutHistoryByWorkoutAndDates(workoutId, dateRange);
-
-  if(workoutHistory == null){
-    return null;
-  } else {
-    workoutHistory.sort((a, b) {
-      return a.date.compareTo(b.date);
-    });
-    List<String> dates = [];
-    for(var history in workoutHistory){
-      dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
-    }
-    return dates;
   }
 }
 
@@ -2704,6 +2607,19 @@ _updateRoutineEntry(RoutineEntry routineEntry) async {
 Future<List<RoutineEntry>?> _routineEntryByRoutine(int id) async {
   DatabaseHelper helper = DatabaseHelper.instance;
   List<RoutineEntry>? workouts = await helper.queryRoutineEntriesByRoutine(id);
+  if (workouts == null) {
+    log('read row $id: empty');
+    return null;
+  } else {
+    log('read row $id: $workouts');
+    workouts.sort((a, b) => a.order.compareTo(b.order));
+    return workouts;
+  }
+}
+
+Future<List<RoutineEntry>?> _routineEntryByWorkout(int id) async {
+  DatabaseHelper helper = DatabaseHelper.instance;
+  List<RoutineEntry>? workouts = await helper.queryRoutineEntriesByWorkout(id);
   if (workouts == null) {
     log('read row $id: empty');
     return null;
@@ -2917,13 +2833,13 @@ Future<List<WorkoutHistory>?> _workoutHistoryByRoutineAndDates(
     log('read row $id: empty');
     return null;
   } else {
-    for(var workout in workouts){
-      List<WorkoutHistory>? tempHistory = await _workoutHistoryByWorkoutAndDates(workout.id, range);
-      if(tempHistory != null){
+    for (var workout in workouts) {
+      List<WorkoutHistory>? tempHistory =
+          await _workoutHistoryByWorkoutAndDates(workout.id, range);
+      if (tempHistory != null) {
         allWorkoutHistory.addAll(tempHistory);
       }
     }
-
   }
 
   if (allWorkoutHistory.isEmpty) {
@@ -2962,9 +2878,9 @@ Future<List<WorkoutHistory>?> _updateWorkoutHistoryByWorkout(
   } else {
     log('read row $id: $workouts');
     for (var element in workouts) {
-      var temp_workout = element;
-      temp_workout.workoutName = workoutName;
-      int id = await helper.updateWorkoutHistory(temp_workout);
+      var tempWorkout = element;
+      tempWorkout.workoutName = workoutName;
+      int id = await helper.updateWorkoutHistory(tempWorkout);
       log('update row $id');
     }
     return workouts;
@@ -2977,6 +2893,7 @@ DateTimeRange todayRange() {
   DateTime dateEnd = DateTime(now.year, now.month, now.day);
   return DateTimeRange(start: dateStart, end: dateEnd);
 }
+
 DateTimeRange weekRange() {
   DateTime now = DateTime.now();
   DateTime dateStart = DateTime(now.year, now.month, now.day - 7);
