@@ -973,12 +973,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         ),
                       ),
                       onChanged: (value) async {
-                        var filteredWorkouts =
-                            await _readAllWorkoutsNameSearch(value);
                         setState(() {
-                          if (filteredWorkouts != null) {
-                            workouts = _readAllWorkoutsNameSearch(value);
-                          }
+                            workouts = _readAllWorkoutsNameSearch(value.toLowerCase());
                         });
                       },
                     ),
@@ -2629,7 +2625,7 @@ Future<List<Workout>?> _readAllWorkoutsNameSearch(String search) async {
   } else {
     log('read row: $workouts');
     List<Workout> filteredWorkouts =
-        workouts.where((element) => element.name.contains(search)).toList();
+        workouts.where((element) => element.name.toLowerCase().contains(search)).toList();
     filteredWorkouts.sort((a, b) => a.name.compareTo(b.name));
     return filteredWorkouts;
   }
