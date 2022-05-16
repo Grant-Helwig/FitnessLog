@@ -27,7 +27,7 @@ const String tableRoutineEntry = "RoutineEntry";
 const String columnRoutineId = 'routineId';
 const String columnOrder = "entryOrder";
 
-//class object for saving workout routines
+//class object for saving workout history
 class WorkoutHistory {
   int id = -1;
   late String workoutName;
@@ -73,7 +73,7 @@ class WorkoutHistory {
 }
 
 
-//class object for saving workout types
+//class object for saving workouts
 class Workout {
   int id = -1;
   late String name;
@@ -133,6 +133,7 @@ class Routine {
   }
 }
 
+//class object for each entry in a routine with a saved order
 class RoutineEntry {
   int id = -1;
   late String workoutName;
@@ -165,6 +166,7 @@ class RoutineEntry {
   }
 }
 
+//helper method to display strings for each workout type
 String workoutTypeString(WorkoutType category){
   switch (category) {
     case WorkoutType.strength:
@@ -309,7 +311,7 @@ class DatabaseHelper {
         ],
         where: '$columnId = ?',
         whereArgs: [id]);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       return WorkoutHistory.fromMap(maps.first);
     }
     return null;
@@ -325,7 +327,7 @@ class DatabaseHelper {
         ],
         where: '$columnId = ?',
         whereArgs: [id]);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       return Workout.fromMap(maps.first);
     }
     return null;
@@ -341,7 +343,7 @@ class DatabaseHelper {
         ],
         where: '$columnId = ?',
         whereArgs: [id]);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       return Routine.fromMap(maps.first);
     }
     return null;
@@ -359,7 +361,7 @@ class DatabaseHelper {
         ],
         where: '$columnId = ?',
         whereArgs: [id]);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       return RoutineEntry.fromMap(maps.first);
     }
     return null;
@@ -381,7 +383,7 @@ class DatabaseHelper {
         ],
         where: '$columnWorkoutId = ?',
         whereArgs: [id]);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       List<WorkoutHistory> history = [];
       maps.forEach((map) => history.add(WorkoutHistory.fromMap(map)));
       return history;
@@ -392,7 +394,7 @@ class DatabaseHelper {
   Future<List<WorkoutHistory>?> queryAllWorkoutHistory() async {
     Database? db = await database;
     List<Map> maps = await db!.query(tableWorkoutHistory);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       List<WorkoutHistory> history = [];
       maps.forEach((map) => history.add(WorkoutHistory.fromMap(map)));
       return history;
@@ -403,7 +405,7 @@ class DatabaseHelper {
   Future<List<Workout>?> queryAllWorkouts() async {
     Database? db = await database;
     List<Map> maps = await db!.query(tableWorkout);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       List<Workout> workouts = [];
       maps.forEach((map) => workouts.add(Workout.fromMap(map)));
       return workouts;
@@ -414,7 +416,7 @@ class DatabaseHelper {
   Future<List<Routine>?> queryAllRoutines() async {
     Database? db = await database;
     List<Map> maps = await db!.query(tableRoutine);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       List<Routine> routines = [];
       maps.forEach((map) => routines.add(Routine.fromMap(map)));
       return routines;
@@ -434,7 +436,7 @@ class DatabaseHelper {
         ],
         where: '$columnRoutineId = ?',
         whereArgs: [id]);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       List<RoutineEntry> entries = [];
       maps.forEach((map) => entries.add(RoutineEntry.fromMap(map)));
       return entries;
@@ -454,7 +456,7 @@ class DatabaseHelper {
         ],
         where: '$columnWorkoutId = ?',
         whereArgs: [id]);
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       List<RoutineEntry> entries = [];
       maps.forEach((map) => entries.add(RoutineEntry.fromMap(map)));
       return entries;

@@ -2111,7 +2111,7 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
             builder: (context, projectSnap) {
               Widget? graphs =
                   _graphFeaturesByWorkoutAndDate(projectSnap.data, context);
-              if (projectSnap.hasData && graphs != null) {
+              if (projectSnap.hasData && graphs != null && projectSnap.data!.length > 1) {
                 return graphs;
               } else {
                 return const Align(
