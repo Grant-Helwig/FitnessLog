@@ -767,7 +767,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
               onLongPress: () async {
                 await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
-                  _workoutHistory = _readAllWorkoutHistory();
+                  _workoutHistory = _workoutHistoryByDates(_selectedDateRange!);
                 });
               },
               title: Column(
@@ -815,7 +815,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
               onLongPress: () async {
                 await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
-                  _workoutHistory = _readAllWorkoutHistory();
+                  _workoutHistory = _workoutHistoryByDates(_selectedDateRange!);
                 });
               },
               title: Column(
@@ -860,7 +860,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
               onLongPress: () async {
                 await _deleteWorkoutHistory(workoutHistory.id);
                 setState(() {
-                  _workoutHistory = _readAllWorkoutHistory();
+                  _workoutHistory = _workoutHistoryByDates(_selectedDateRange!);
                 });
               },
               title: Column(
