@@ -749,7 +749,6 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     for (var i = 0; i < workout.length; i++) {
       if (workoutHistory.workoutId == workout[i].id) {
         type = WorkoutType.values[workout[i].type];
-        log(workoutTypeString(type));
       }
     }
 
@@ -1050,7 +1049,6 @@ class _WorkoutPageState extends State<WorkoutPage> {
                                 setNewState(() {
                                   typeIndexController =
                                       WorkoutType.strength.index;
-                                  log(typeIndexController.toString());
                                 });
                               },
                         activeColor: Colors.green,
@@ -1066,7 +1064,6 @@ class _WorkoutPageState extends State<WorkoutPage> {
                                 setNewState(() {
                                   typeIndexController =
                                       WorkoutType.cardio.index;
-                                  log(typeIndexController.toString());
                                 });
                               },
                         activeColor: Colors.green,
@@ -1081,7 +1078,6 @@ class _WorkoutPageState extends State<WorkoutPage> {
                             : (value) {
                                 setNewState(() {
                                   typeIndexController = WorkoutType.both.index;
-                                  log(typeIndexController.toString());
                                 });
                               },
                         activeColor: Colors.green,
@@ -2161,6 +2157,9 @@ Widget? _graphFeaturesByWorkoutAndDate(
     //string for the x axis display
     List<String> dates = [];
 
+    //string for the x axis display that only show first last
+    List<String> compressedDates = [];
+
     //same process for each workout type, using different workout history attributes
     switch (type) {
       case WorkoutType.strength:
@@ -2170,7 +2169,7 @@ Widget? _graphFeaturesByWorkoutAndDate(
         List<double> dataSet = [];
         List<double> dataRep = [];
 
-        //graph only goes fromm 0-1 so we need to use fractions with the max values
+        //graph only goes from 0-1 so we need to use fractions with the max values
         double highestWeight =
             workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
         double highestSet = workoutHistory
@@ -2189,7 +2188,12 @@ Widget? _graphFeaturesByWorkoutAndDate(
           dataRep.add(history.reps.toDouble() / highestRep);
 
           dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
+
+          compressedDates.add("");
         }
+
+        compressedDates[0] = dates[0];
+        compressedDates[dates.length-1] = dates[dates.length-1];
 
         features
             .add(Feature(title: "Weight", color: Colors.red, data: dataWeight));
@@ -2288,8 +2292,8 @@ Widget? _graphFeaturesByWorkoutAndDate(
                   padding: const EdgeInsets.all(16),
                   child: LineGraph(
                     features: features,
-                    size: Size(graphWidth, 400),
-                    labelX: dates,
+                    size: Size(MediaQuery.of(context).size.width - 40, 400),
+                    labelX: compressedDates,
                     labelY: const [""],
                     showDescription: true,
                     graphColor: Colors.white,
@@ -2304,11 +2308,14 @@ Widget? _graphFeaturesByWorkoutAndDate(
         List<double> dataDuration = [];
         double highestDuration =
             workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
+
         for (var history in workoutHistory) {
           dataDuration.add(history.timer / highestDuration);
 
           dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
         }
+
+
         features.add(
             Feature(title: "Duration", color: Colors.blue, data: dataDuration));
         return SingleChildScrollView(
@@ -2352,7 +2359,12 @@ Widget? _graphFeaturesByWorkoutAndDate(
           dataDuration.add(history.timer / highestDuration);
 
           dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
+          compressedDates.add("");
         }
+
+        compressedDates[0] = dates[0];
+        compressedDates[dates.length-1] = dates[dates.length-1];
+
         features
             .add(Feature(title: "Weight", color: Colors.red, data: dataWeight));
         features.add(
@@ -2422,8 +2434,8 @@ Widget? _graphFeaturesByWorkoutAndDate(
                   padding: const EdgeInsets.all(16),
                   child: LineGraph(
                     features: features,
-                    size: Size(graphWidth, 400),
-                    labelX: dates,
+                    size: Size(MediaQuery.of(context).size.width - 40, 400),
+                    labelX: compressedDates,
                     labelY: const [""],
                     showDescription: true,
                     graphColor: Colors.white,
@@ -2513,7 +2525,6 @@ Future<List<Workout>?> _readAllWorkouts() async {
     log('read row empty');
     return null;
   } else {
-    log('read row: $workouts');
     workouts.sort((a, b) => a.name.compareTo(b.name));
     return workouts;
   }
@@ -2526,7 +2537,6 @@ Future<List<Workout>?> _readAllWorkoutsNameSearch(String search) async {
     log('read row empty');
     return null;
   } else {
-    log('read row: $workouts');
     List<Workout> filteredWorkouts =
         workouts.where((element) => element.name.toLowerCase().contains(search)).toList();
     filteredWorkouts.sort((a, b) => a.name.compareTo(b.name));
@@ -2568,7 +2578,6 @@ Future<List<Routine>?> _readAllRoutines() async {
     log('read row empty');
     return null;
   } else {
-    log('read row: $routines');
     routines.sort((a, b) => a.name.compareTo(b.name));
     return routines;
   }
@@ -2611,7 +2620,6 @@ Future<List<RoutineEntry>?> _routineEntryByRoutine(int id) async {
     log('read row $id: empty');
     return null;
   } else {
-    log('read row $id: $workouts');
     workouts.sort((a, b) => a.order.compareTo(b.order));
     return workouts;
   }
@@ -2624,7 +2632,6 @@ Future<List<RoutineEntry>?> _routineEntryByWorkout(int id) async {
     log('read row $id: empty');
     return null;
   } else {
-    log('read row $id: $workouts');
     workouts.sort((a, b) => a.order.compareTo(b.order));
     return workouts;
   }
@@ -2637,7 +2644,6 @@ Future<List<Workout>?> _workoutsByRoutine(int id) async {
     log('read row $id: empty');
     return null;
   } else {
-    log('read row $id: $entries');
     entries.sort((a, b) => a.order.compareTo(b.order));
     List<Workout>? workouts = [];
     for (var element in entries) {
@@ -2655,7 +2661,6 @@ Future<List<Workout>?> _readAllWorkoutsDropdown() async {
     log('read row $rowId: empty');
     return null;
   } else {
-    log('read row $rowId: $workouts');
     Workout add = Workout();
     add.id = -1;
     add.name = "All";
@@ -2674,7 +2679,6 @@ Future<List<Routine>?> _readAllRoutinesDropdown() async {
     log('read row $rowId: empty');
     return null;
   } else {
-    log('read row $rowId: $routines');
     Routine add = Routine();
     add.id = -1;
     add.name = "All";
@@ -2729,7 +2733,6 @@ Future<List<WorkoutHistory>?> _readAllWorkoutHistory() async {
     log('read row $rowId: empty');
     return null;
   } else {
-    log('read row $rowId: $workouts');
     workouts.sort((a, b) {
       return b.date.compareTo(a.date);
     });
@@ -2745,7 +2748,6 @@ Future<List<WorkoutHistory>?> _workoutHistoryByWorkout(int id) async {
     log('read row $id: empty');
     return null;
   } else {
-    log('read row $id: $workouts');
     workouts.sort((a, b) {
       return a.date.compareTo(b.date);
     });
@@ -2761,7 +2763,6 @@ Future<WorkoutHistory?> _mostRecentWorkoutHistoryByWorkout(int id) async {
     log('read row $id: empty');
     return null;
   } else {
-    log('read row $id: $workouts');
     workouts.sort((a, b) {
       return b.date.compareTo(a.date);
     });
@@ -2778,7 +2779,6 @@ Future<List<WorkoutHistory>?> _workoutHistoryByWorkoutAndDates(
     log('read row $id: empty');
     return null;
   } else {
-    log('read row $id: $workouts');
     List<WorkoutHistory>? workoutsInRange = [];
     log(workouts.length.toString());
     for (var value in workouts) {
@@ -2787,7 +2787,6 @@ Future<List<WorkoutHistory>?> _workoutHistoryByWorkoutAndDates(
           datesEqual(range.start, curDay) ||
           datesEqual(range.end, curDay)) {
         workoutsInRange.add(value);
-        log("added ${value.workoutName} from ${value.date}");
       } else {
         log("skipped ${value.workoutName} from ${value.date}");
       }
@@ -2846,16 +2845,13 @@ Future<List<WorkoutHistory>?> _workoutHistoryByRoutineAndDates(
     log('read row $id: empty');
     return null;
   } else {
-    log('read row $id: $allWorkoutHistory');
     List<WorkoutHistory>? workoutsInRange = [];
-    log(allWorkoutHistory.length.toString());
     for (var value in allWorkoutHistory) {
       DateTime curDay = DateTime.parse(value.date);
       if (range.start.isBefore(curDay) && range.end.isAfter(curDay) ||
           datesEqual(range.start, curDay) ||
           datesEqual(range.end, curDay)) {
         workoutsInRange.add(value);
-        log("added ${value.workoutName} from ${value.date}");
       } else {
         log("skipped ${value.workoutName} from ${value.date}");
       }
@@ -2873,10 +2869,8 @@ Future<List<WorkoutHistory>?> _updateWorkoutHistoryByWorkout(
   List<WorkoutHistory>? workouts =
       await helper.queryWorkoutHistoryByWorkout(id);
   if (workouts == null) {
-    log('read row $id: empty');
     return null;
   } else {
-    log('read row $id: $workouts');
     for (var element in workouts) {
       var tempWorkout = element;
       tempWorkout.workoutName = workoutName;
