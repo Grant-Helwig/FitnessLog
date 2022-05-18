@@ -1112,7 +1112,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
                         //finish validation and exit async call
                         setNewState(() {
-                          if (isDupe) {
+                          if (isDupe && typeController.text.toLowerCase() != type.name.toLowerCase()) {
                             isInvalidName = true;
                           } else {
                             isInvalidName = false;
@@ -1566,11 +1566,14 @@ class _RoutinePageState extends State<RoutinePage> {
         child: ListTile(
           //on tap open the routine profile
           onTap: () async {
-            Navigator.push(
+            await Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (context) =>
                         RoutineProfile(routine: curRoutines![index])));
+            setState(() {
+              routines = _readAllRoutines();
+            });
           },
           onLongPress: () async {
             return updateOptions(curRoutines[index]);
@@ -2130,8 +2133,7 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
   }
 }
 
-Widget? _graphFeaturesByWorkoutAndDate(
-    List<WorkoutHistory>? workoutHistory, BuildContext context) {
+Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, BuildContext context) {
 
   if (workoutHistory == null || workoutHistory.isEmpty) {
     return null;
@@ -2583,8 +2585,7 @@ Future<List<Routine>?> _readAllRoutines() async {
   }
 }
 
-_saveRoutineEntry(
-    String workoutName, int workoutId, int routineId, int order) async {
+_saveRoutineEntry(String workoutName, int workoutId, int routineId, int order) async {
   RoutineEntry routineEntry = RoutineEntry();
   routineEntry.workoutName = workoutName;
   routineEntry.workoutId = workoutId;
