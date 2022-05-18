@@ -367,7 +367,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
             workoutHistory.date = DateTime.now().toString();
             workoutHistory.sets = 0;
             workoutHistory.reps = 0;
-            workoutHistory.weight = 0;
+            workoutHistory.weight = null;
             workoutHistory.timer = 0;
             workoutHistory.workoutId = 0;
             workoutIndex = 0;
@@ -471,7 +471,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     TextEditingController routineController = TextEditingController(
         text: workout != null ? workout!.name : workoutStrings[0]);
     TextEditingController weightController = TextEditingController(
-        text: workoutHistory.weight == 0
+        text: workoutHistory.weight == 0 || workoutHistory.weight == null
             ? null
             : workoutHistory.weight.toString());
     TextEditingController timerController = TextEditingController(
@@ -580,9 +580,9 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           curWorkout.type == WorkoutType.both.index,
                       child: TextFormField(
                         controller: weightController,
-                        validator: (value) {
-                          return value!.isNotEmpty ? null : "Empty";
-                        },
+                        // validator: (value) {
+                        //   return value!.isNotEmpty ? null : "Empty";
+                        // },
                         decoration: const InputDecoration(
                             hintText: "Weight", labelText: "Weight *"),
                         keyboardType: TextInputType.number,
@@ -688,10 +688,11 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                       workoutHistory.reps = int.parse(repController.text.isEmpty
                           ? "0"
                           : repController.text);
-                      workoutHistory.weight = double.parse(
-                          weightController.text.isEmpty
-                              ? "0"
-                              : weightController.text);
+                      if(weightController.text.isEmpty){
+                        workoutHistory.weight = null;
+                      } else {
+                        workoutHistory.weight = double.parse(weightController.text);
+                      }
                       workoutHistory.timer = double.parse(
                           timerController.text.isEmpty
                               ? "0"
@@ -2112,10 +2113,22 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
           child: FutureBuilder<List<WorkoutHistory>?>(
             future: workoutHistory,
             builder: (context, projectSnap) {
-              Widget? graphs =
-                  _graphFeaturesByWorkoutAndDate(projectSnap.data, context);
-              if (projectSnap.hasData && graphs != null && projectSnap.data!.length > 1) {
-                return graphs;
+
+              if (projectSnap.hasData ) {
+                Widget? graphs =
+                _graphFeaturesByWorkoutAndDate(projectSnap.data, context);
+                log("${projectSnap.data!.length}");
+                  if( graphs != null && projectSnap.data!.length > 1){
+                    return graphs;
+                  } else {
+                    return const Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'No data',
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                  }
               } else {
                 return const Align(
                   alignment: Alignment.center,
@@ -2170,10 +2183,24 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
         List<double> dataWeight = [];
         List<double> dataSet = [];
         List<double> dataRep = [];
-
+        
+        var tempWorkHistory = workoutHistory;
+        
         //graph only goes from 0-1 so we need to use fractions with the max values
-        double highestWeight =
-            workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
+        tempWorkHistory.removeWhere((element) => element.weight == null);
+        List<double> tempWeight = tempWorkHistory.map((e) => e.weight!).toList();
+        double highestWeight;
+        if(tempWeight.isNotEmpty){
+          highestWeight = tempWeight.reduce((a, b) => a > b ? a : b);
+        } else {
+          highestWeight = 0;
+        }
+
+        // double weightGraphWidth = graphWidth;
+        // if (weightGraphWidth < tempWeight.length * 60) {
+        //   weightGraphWidth = workoutHistory.length * 60;
+        // }
+
         double highestSet = workoutHistory
             .reduce((a, b) => a.sets > b.sets ? a : b)
             .sets
@@ -2185,7 +2212,12 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
 
         //set the fraction values and the date values
         for (var history in workoutHistory) {
-          dataWeight.add(history.weight / highestWeight);
+          if(history.weight != null){
+            dataWeight.add(history.weight! / highestWeight);
+          } else {
+            dataWeight.add(0);
+          }
+
           dataSet.add(history.sets.toDouble() / highestSet);
           dataRep.add(history.reps.toDouble() / highestRep);
 
@@ -2352,12 +2384,20 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
       case WorkoutType.both:
         List<double> dataWeight = [];
         List<double> dataDuration = [];
+
+        var tempWorkHistory = workoutHistory;
+        tempWorkHistory.removeWhere((element) => element.weight != null);
+        List<double> tempWeight = tempWorkHistory.map((e) => e.weight!).toList();
         double highestWeight =
-            workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
+        tempWeight.reduce((a, b) => a > b ? a : b);
         double highestDuration =
             workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
+
         for (var history in workoutHistory) {
-          dataWeight.add(history.weight / highestWeight);
+          if(history.weight != null){
+            dataWeight.add(history.weight! / highestWeight);
+          }
+
           dataDuration.add(history.timer / highestDuration);
 
           dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
@@ -2795,6 +2835,7 @@ Future<List<WorkoutHistory>?> _workoutHistoryByWorkoutAndDates(
     workoutsInRange.sort((a, b) {
       return b.date.compareTo(a.date);
     });
+    log(workoutsInRange.length.toString());
     return workoutsInRange;
   }
 }

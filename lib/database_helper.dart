@@ -33,7 +33,7 @@ class WorkoutHistory {
   late String workoutName;
   late int workoutType;
   late String date;
-  late double weight;
+  late double? weight;
   late double timer;
   late int sets;
   late int reps;
@@ -240,7 +240,7 @@ class DatabaseHelper {
                 $columnWorkoutType INTEGER NOT NULL,
                 $columnWorkoutId INTEGER NOT NULL,
                 $columnDate TEXT NOT NULL,
-                $columnWeight DOUBLE NOT NULL,
+                $columnWeight DOUBLE,
                 $columnTimer DOUBLE NOT NULL,
                 $columnSets INTEGER NOT NULL,
                 $columnReps INTEGER NOT NULL,
