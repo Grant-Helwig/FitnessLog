@@ -13,6 +13,9 @@ const String columnWorkoutType = 'workoutType';
 const String columnDate = 'date';
 const String columnWeight = 'weight';
 const String columnTimer = 'timer';
+const String columnDistance = 'distance';
+const String columnCalories = 'calories';
+const String columnHeartRate = 'heartRate';
 const String columnSets = 'sets';
 const String columnReps = 'reps';
 const String columnWorkoutId = 'workoutId';
@@ -35,6 +38,9 @@ class WorkoutHistory {
   late String date;
   late double weight;
   late double timer;
+  late double distance;
+  late double calories;
+  late double heartRate;
   late int sets;
   late int reps;
   late int workoutId;
@@ -48,6 +54,9 @@ class WorkoutHistory {
     date = map[columnDate];
     weight = map[columnWeight];
     timer = map[columnTimer];
+    distance = map[columnDistance];
+    calories = map[columnCalories];
+    heartRate = map[columnHeartRate];
     sets = map[columnSets];
     reps = map[columnReps];
     workoutId = map[columnWorkoutId];
@@ -61,6 +70,9 @@ class WorkoutHistory {
       columnDate: date,
       columnWeight: weight,
       columnTimer: timer,
+      columnDistance: distance,
+      columnCalories: calories,
+      columnHeartRate: heartRate,
       columnSets: sets,
       columnReps: reps,
       columnWorkoutId: workoutId
@@ -242,6 +254,9 @@ class DatabaseHelper {
                 $columnDate TEXT NOT NULL,
                 $columnWeight DOUBLE NOT NULL,
                 $columnTimer DOUBLE NOT NULL,
+                $columnDistance DOUBLE NOT NULL,
+                $columnCalories DOUBLE NOT NULL,
+                $columnHeartRate DOUBLE NOT NULL,
                 $columnSets INTEGER NOT NULL,
                 $columnReps INTEGER NOT NULL,
                 FOREIGN KEY($columnWorkoutId) REFERENCES $tableWorkout($columnId)
@@ -305,6 +320,9 @@ class DatabaseHelper {
           columnDate,
           columnWeight,
           columnTimer,
+          columnDistance,
+          columnCalories,
+          columnHeartRate,
           columnSets,
           columnReps,
           columnWorkoutId
@@ -377,6 +395,9 @@ class DatabaseHelper {
           columnDate,
           columnWeight,
           columnTimer,
+          columnDistance,
+          columnCalories,
+          columnHeartRate,
           columnSets,
           columnReps,
           columnWorkoutId
