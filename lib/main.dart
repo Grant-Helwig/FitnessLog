@@ -9,6 +9,15 @@ import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:draw_graph/draw_graph.dart';
 import 'package:draw_graph/models/feature.dart';
 
+const Color myRed = Color.fromRGBO(245, 83, 83, 1);
+const Color myYellow = Color.fromRGBO(246, 245, 77, 1);
+const Color myPurple = Color.fromRGBO(242, 83, 245, 1);
+const Color myGreen = Color.fromRGBO(77, 245, 77, 1);
+const Color myBlue = Color.fromRGBO(80, 83, 246, 1);
+const Color myOrange = Color.fromRGBO(246, 163, 80, 1);
+const Color myBlueGreen = Color.fromRGBO(77, 246, 164, 1);
+const Color myYellowGreen = Color.fromRGBO(164, 246, 77, 1);
+
 void main() {
   runApp(const MyApp());
 }
@@ -414,6 +423,52 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
   }
 
+  //update and delete are both on long press
+  Future<void> updateOptions(WorkoutHistory workoutHistory) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                const Divider(),
+                TextButton(
+                  child: const Text('Update'),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await addWorkoutHistoryForm(context, false, workoutHistory, true);
+                  },
+                ),
+                const Divider(),
+                TextButton(
+                  child: const Text('Delete'),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await _deleteWorkoutHistory(workoutHistory.id);
+                    setState(() {
+                      _workoutHistory = _workoutHistoryByDates(_selectedDateRange!);
+                    });
+                  },
+                ),
+                const Divider(),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> noWorkoutsAlert() {
     return showDialog<void>(
       context: context,
@@ -442,7 +497,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
   }
 
-  Future<void> addWorkoutForm(BuildContext context, bool add,
+  Future<void> addWorkoutHistoryForm(BuildContext context, bool add,
       WorkoutHistory workoutHistory, bool hasContext) async {
     List<Workout>? workouts = await _readAllWorkouts();
 
@@ -819,11 +874,11 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
   }
 
-  Widget buildWorkoutCard(BuildContext context, workoutHistory, workout) {
+  Widget buildWorkoutCard(BuildContext context, workoutHistory, workouts) {
     WorkoutType? type;
-    for (var i = 0; i < workout.length; i++) {
-      if (workoutHistory.workoutId == workout[i].id) {
-        type = WorkoutType.values[workout[i].type];
+    for (var i = 0; i < workouts.length; i++) {
+      if (workoutHistory.workoutId == workouts[i].id) {
+        type = WorkoutType.values[workouts[i].type];
       }
     }
 
@@ -835,15 +890,149 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
         return Container(
           margin: const EdgeInsets.all(0),
           child: Card(
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: myRed, width: 2),
+              borderRadius: BorderRadius.circular(15),
+            ),
             child: ListTile(
               onTap: () async {
-                await addWorkoutForm(context, false, workoutHistory, true);
+                //await addWorkoutHistoryForm(context, false, workoutHistory, true);
+                if(workout == null){
+                  Workout? tempWorkout = await _readWorkout(workoutHistory.workoutId);
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              WorkoutProfile(workout: tempWorkout!)));
+                }
               },
               onLongPress: () async {
-                await _deleteWorkoutHistory(workoutHistory.id);
-                setState(() {
-                  _workoutHistory = _workoutHistoryByDates(_selectedDateRange!);
-                });
+                await updateOptions(workoutHistory);
+              },
+              title: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Text('${workoutHistory.workoutName} '),
+                        const Spacer(),
+                        Text(
+                          DateFormat('yyyy/MM/dd')
+                              .format(DateTime.parse(workoutHistory.date)),
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(),
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Text('${workoutHistory.weight.toString()} LBS'),
+                        const Spacer(),
+                        Text('${workoutHistory.sets.toString()} Sets '),
+                        const Spacer(),
+                        Text('${workoutHistory.reps.toString()} Reps'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      case WorkoutType.cardio:
+        return Container(
+          margin: const EdgeInsets.all(0),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: myBlue, width: 2),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: ListTile(
+              onTap: () async {
+                //await addWorkoutHistoryForm(context, false, workoutHistory, true);
+                if(workout == null){
+                  Workout? tempWorkout = await _readWorkout(workoutHistory.workoutId);
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              WorkoutProfile(workout: tempWorkout!)));
+                }
+              },
+              onLongPress: () async {
+                await updateOptions(workoutHistory);
+              },
+              title: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Text('${workoutHistory.workoutName} '),
+                        const Spacer(),
+                        Text(
+                          DateFormat('yyyy/MM/dd')
+                              .format(DateTime.parse(workoutHistory.date)),
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      //mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Duration: ${workoutHistory.timer.toString()}'),
+                        const Spacer(),
+                        Text('${workoutHistory.distance.toString()} Mi '),
+                      ],
+                    ),
+                  ),
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      //mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('${workoutHistory.heartRate.toString()} BPM '),
+                        const Spacer(),
+                        Text('${workoutHistory.calories.toString()} Cal'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      case WorkoutType.both:
+        return Container(
+          margin: const EdgeInsets.all(0),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: myPurple, width: 2),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: ListTile(
+              onTap: () async {
+                //await addWorkoutHistoryForm(context, false, workoutHistory, true);
+                if(workout == null){
+                  Workout? tempWorkout = await _readWorkout(workoutHistory.workoutId);
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              WorkoutProfile(workout: tempWorkout!)));
+                }
+              },
+              onLongPress: () async {
+                await updateOptions(workoutHistory);
               },
               title: Column(
                 children: [
@@ -874,38 +1063,15 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-        );
-      case WorkoutType.cardio:
-        return Container(
-          margin: const EdgeInsets.all(0),
-          child: Card(
-            child: ListTile(
-              onTap: () async {
-                await addWorkoutForm(context, false, workoutHistory, true);
-              },
-              onLongPress: () async {
-                await _deleteWorkoutHistory(workoutHistory.id);
-                setState(() {
-                  _workoutHistory = _workoutHistoryByDates(_selectedDateRange!);
-                });
-              },
-              title: Column(
-                children: [
+                  const Divider(),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
+                      //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('${workoutHistory.workoutName} '),
+                        Text('Duration: ${workoutHistory.timer.toString()}'),
                         const Spacer(),
-                        Text(
-                          DateFormat('yyyy/MM/dd')
-                              .format(DateTime.parse(workoutHistory.date)),
-                          style: const TextStyle(fontSize: 10),
-                        ),
+                        Text('${workoutHistory.distance.toString()} Mi '),
                       ],
                     ),
                   ),
@@ -913,55 +1079,11 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Duration: ${workoutHistory.timer.toString()}'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      case WorkoutType.both:
-        return Container(
-          margin: const EdgeInsets.all(0),
-          child: Card(
-            child: ListTile(
-              onTap: () async {
-                await addWorkoutForm(context, false, workoutHistory, true);
-              },
-              onLongPress: () async {
-                await _deleteWorkoutHistory(workoutHistory.id);
-                setState(() {
-                  _workoutHistory = _workoutHistoryByDates(_selectedDateRange!);
-                });
-              },
-              title: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Text('${workoutHistory.workoutName} '),
+                        Text('${workoutHistory.heartRate.toString()} BPM '),
                         const Spacer(),
-                        Text(
-                          DateFormat('yyyy/MM/dd')
-                              .format(DateTime.parse(workoutHistory.date)),
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Text('Duration: ${workoutHistory.timer.toString()}'),
-                        const Spacer(),
-                        Text('${workoutHistory.weight.toString()} LBS'),
+                        Text('${workoutHistory.calories.toString()} Cal'),
                       ],
                     ),
                   ),
@@ -1322,6 +1444,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
       margin: const EdgeInsets.all(0),
       //height: 42,
       child: Card(
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: getWorkoutColor(WorkoutType.values[workouts![index].type]), width: 2),
+          borderRadius: BorderRadius.circular(15),
+        ),
         child: ListTile(
           //navigate to profile on tap
           onTap: () async {
@@ -1868,10 +1994,13 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
           actions: [
             IconButton(
                 onPressed: () async {
-                  Navigator.push(
+                  await Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (context) => executeWorkoutCard()));
+                  setState(() {
+
+                  });
                 },
                 icon: const Icon(UniconsLine.play))
           ],
@@ -3049,11 +3178,11 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
         compressedDates[dates.length-1] = dates[dates.length-1];
 
         features
-            .add(Feature(title: "Weight", color: Colors.red, data: dataWeight));
+            .add(Feature(title: "Weight", color: myRed, data: dataWeight));
         features
-            .add(Feature(title: "Sets", color: Colors.green, data: dataSet));
+            .add(Feature(title: "Sets", color: myOrange, data: dataSet));
         features
-            .add(Feature(title: "Reps", color: Colors.purple, data: dataRep));
+            .add(Feature(title: "Reps", color: myYellow, data: dataRep));
 
         return SingleChildScrollView(
           child: Column(children: [
@@ -3161,16 +3290,36 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
         List<double> dataDuration = [];
         double highestDuration =
             workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
+        List<double> dataDistance = [];
+        double highestDistance =
+            workoutHistory.reduce((a, b) => a.distance > b.distance ? a : b).distance;
+        List<double> dataCalories = [];
+        double highestCalories =
+            workoutHistory.reduce((a, b) => a.calories > b.calories ? a : b).calories;
+        List<double> dataHeartRate = [];
+        double highestHeartRate =
+            workoutHistory.reduce((a, b) => a.heartRate > b.heartRate ? a : b).heartRate;
 
         for (var history in workoutHistory) {
           dataDuration.add(history.timer / highestDuration);
+          dataDistance.add(history.distance / highestDistance);
+          dataCalories.add(history.calories / highestCalories);
+          dataHeartRate.add(history.heartRate / highestHeartRate);
 
           dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
+          compressedDates.add("");
         }
 
-
+        compressedDates[0] = dates[0];
+        compressedDates[dates.length-1] = dates[dates.length-1];
         features.add(
-            Feature(title: "Duration", color: Colors.blue, data: dataDuration));
+            Feature(title: "Duration", color: myBlue, data: dataDuration));
+        features.add(
+            Feature(title: "Distance", color: myBlueGreen, data: dataDistance));
+        features.add(
+            Feature(title: "Calories", color: myGreen, data: dataCalories));
+        features.add(
+            Feature(title: "Heart Rate", color: myYellowGreen, data: dataHeartRate));
         return SingleChildScrollView(
           child: Column(children: [
             Card(
@@ -3185,13 +3334,110 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: LineGraph(
-                    features: features,
+                    features: [features[0]],
                     size: Size(graphWidth, 400),
                     labelX: dates,
                     labelY: [
                       (highestDuration / 2).round().toString(),
                       highestDuration.round().toString()
                     ],
+                    showDescription: true,
+                    graphColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Distance $highestDistance Miles"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[1]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      double.parse((highestDistance / 2).toStringAsFixed(2)).toString(),
+                      double.parse((highestDistance).toStringAsFixed(2)).toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Calories $highestCalories"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[2]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      double.parse((highestCalories / 2).toStringAsFixed(2)).toString(),
+                      double.parse((highestCalories).toStringAsFixed(2)).toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Heart Rate $highestDistance BPM"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[3]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      double.parse((highestHeartRate / 2).toStringAsFixed(2)).toString(),
+                      double.parse((highestHeartRate).toStringAsFixed(2)).toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text("Comparison"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: features,
+                    size: Size(MediaQuery.of(context).size.width - 40, 400),
+                    labelX: compressedDates,
+                    labelY: const [""],
                     showDescription: true,
                     graphColor: Colors.white,
                   ),
@@ -3207,9 +3453,40 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
             workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
         double highestDuration =
             workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
+
+        List<double> dataDistance = [];
+        double highestDistance =
+            workoutHistory.reduce((a, b) => a.distance > b.distance ? a : b).distance;
+        List<double> dataCalories = [];
+        double highestCalories =
+            workoutHistory.reduce((a, b) => a.calories > b.calories ? a : b).calories;
+        List<double> dataHeartRate = [];
+        double highestHeartRate =
+            workoutHistory.reduce((a, b) => a.heartRate > b.heartRate ? a : b).heartRate;
+
+        List<double> dataSet = [];
+        List<double> dataRep = [];
+        double highestSet = workoutHistory
+            .reduce((a, b) => a.sets > b.sets ? a : b)
+            .sets
+            .toDouble();
+        double highestRep = workoutHistory
+            .reduce((a, b) => a.reps > b.reps ? a : b)
+            .reps
+            .toDouble();
+
         for (var history in workoutHistory) {
           dataWeight.add(history.weight / highestWeight);
           dataDuration.add(history.timer / highestDuration);
+
+
+          dataDistance.add(history.distance / highestDistance);
+          dataCalories.add(history.calories / highestCalories);
+          dataHeartRate.add(history.heartRate / highestHeartRate);
+
+
+          dataSet.add(history.sets.toDouble() / highestSet);
+          dataRep.add(history.reps.toDouble() / highestRep);
 
           dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
           compressedDates.add("");
@@ -3220,8 +3497,19 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
 
         features
             .add(Feature(title: "Weight", color: Colors.red, data: dataWeight));
+        features
+            .add(Feature(title: "Sets", color: myOrange, data: dataSet));
+        features
+            .add(Feature(title: "Reps", color: myYellow, data: dataRep));
+
         features.add(
             Feature(title: "Duration", color: Colors.blue, data: dataDuration));
+        features.add(
+            Feature(title: "Distance", color: myBlueGreen, data: dataDistance));
+        features.add(
+            Feature(title: "Calories", color: myGreen, data: dataCalories));
+        features.add(
+            Feature(title: "Heart Rate", color: myYellowGreen, data: dataHeartRate));
         return SingleChildScrollView(
           child: Column(children: [
             Card(
@@ -3252,7 +3540,7 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Text("Max Duration $highestDuration"),
+                child: Text("Max Sets $highestSet "),
               ),
             ),
             SingleChildScrollView(
@@ -3265,8 +3553,133 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
                     size: Size(graphWidth, 400),
                     labelX: dates,
                     labelY: [
+                      (highestSet / 2).round().toString(),
+                      highestSet.round().toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Reps $highestRep"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[2]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      (highestRep / 2).round().toString(),
+                      highestRep.round().toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Duration $highestDuration "),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[3]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
                       (highestDuration / 2).round().toString(),
                       highestDuration.round().toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Distance $highestDistance Miles"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[4]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      double.parse((highestDistance / 2).toStringAsFixed(2)).toString(),
+                      double.parse((highestDistance).toStringAsFixed(2)).toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Calories $highestCalories"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[5]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      double.parse((highestCalories / 2).toStringAsFixed(2)).toString(),
+                      double.parse((highestCalories).toStringAsFixed(2)).toString()
+                    ],
+                    showDescription: true,
+                    graphColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Max Heart Rate $highestDistance BPM"),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LineGraph(
+                    features: [features[6]],
+                    size: Size(graphWidth, 400),
+                    labelX: dates,
+                    labelY: [
+                      double.parse((highestHeartRate / 2).toStringAsFixed(2)).toString(),
+                      double.parse((highestHeartRate).toStringAsFixed(2)).toString()
                     ],
                     showDescription: true,
                     graphColor: Colors.white,
@@ -3753,4 +4166,15 @@ DateTimeRange weekRange() {
 
 bool datesEqual(DateTime one, DateTime two) {
   return one.year == two.year && one.month == two.month && one.day == two.day;
+}
+
+Color getWorkoutColor(WorkoutType workoutType){
+  switch(workoutType) {
+    case WorkoutType.strength:
+      return myRed;
+    case WorkoutType.cardio:
+      return myBlue;
+    case WorkoutType.both:
+      return myPurple;
+  }
 }
