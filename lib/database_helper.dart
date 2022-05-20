@@ -150,6 +150,7 @@ class RoutineEntry {
   int id = -1;
   late String workoutName;
   late int workoutId;
+  late int workoutType;
   late int routineId;
   late int order;
 
@@ -159,6 +160,7 @@ class RoutineEntry {
     id = map[columnId];
     workoutName = map[columnWorkoutName];
     workoutId = map[columnWorkoutId];
+    workoutType = map[columnWorkoutType];
     routineId = map[columnRoutineId];
     order = map[columnOrder];
   }
@@ -168,6 +170,7 @@ class RoutineEntry {
     var map = <String, dynamic>{
       columnWorkoutName: workoutName,
       columnWorkoutId: workoutId,
+      columnWorkoutType: workoutType,
       columnRoutineId: routineId,
       columnOrder: order
     };
@@ -278,6 +281,7 @@ class DatabaseHelper {
                 $columnWorkoutName TEXT NOT NULL,
                 $columnOrder INTEGER NOT NULL,
                 $columnWorkoutId INTEGER NOT NULL,
+                $columnWorkoutType INTEGER NOT NULL,
                 $columnRoutineId INTEGER NOT NULL,
                 FOREIGN KEY($columnWorkoutId) REFERENCES $tableWorkout($columnId),
                 FOREIGN KEY($columnRoutineId) REFERENCES $tableRoutine($columnId)
@@ -374,6 +378,7 @@ class DatabaseHelper {
           columnId,
           columnWorkoutName,
           columnWorkoutId,
+          columnWorkoutType,
           columnRoutineId,
           columnOrder
         ],
@@ -452,6 +457,7 @@ class DatabaseHelper {
           columnId,
           columnWorkoutName,
           columnWorkoutId,
+          columnWorkoutType,
           columnRoutineId,
           columnOrder
         ],
@@ -472,6 +478,7 @@ class DatabaseHelper {
           columnId,
           columnWorkoutName,
           columnWorkoutId,
+          columnWorkoutType,
           columnRoutineId,
           columnOrder
         ],
