@@ -33,8 +33,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Fitness Log',
-      theme: ThemeData.dark(),
-
+      theme: ThemeData.dark().copyWith(
+        colorScheme: ThemeData.dark().colorScheme.copyWith(secondary: Colors.white)
+      ),
       // experimenting with custom pallets. For now, Dark Only.
       // darkTheme: ThemeData.from(colorScheme: ColorScheme.fromSwatch(primarySwatch:
       // MaterialColor(CustomColors.darkBrown[800]!.value, CustomColors.darkBrown))
@@ -80,7 +81,9 @@ class _MyHomePageState extends State<MyHomePage> {
             "Fitness Log",
             textAlign: TextAlign.center,
           ),
-          bottom: const TabBar(tabs: <Widget>[
+          bottom: const TabBar(
+              indicatorColor: Colors.white,
+              tabs: <Widget>[
             SizedBox(
               height: 30.0,
               child: Align(
@@ -670,7 +673,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           return null;
                         },
                         decoration: const InputDecoration(
-                            hintText: "Weight", labelText: "Weight"),
+                            hintText: "LBS", labelText: "Weight"),
                         keyboardType: TextInputType.number,
                         inputFormatters: <TextInputFormatter>[
                           FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -862,7 +865,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                             return null;
                           },
                         decoration: const InputDecoration(
-                            hintText: "Distance", labelText: "Distance"),
+                            hintText: "Miles", labelText: "Distance"),
                         keyboardType: TextInputType.number,
                         inputFormatters: <TextInputFormatter>[
                           FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -942,7 +945,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           return null;
                         },
                         decoration: const InputDecoration(
-                            hintText: "Heart Rate", labelText: "Heart Rate"),
+                            hintText: "BPM", labelText: "Heart Rate"),
                         keyboardType: TextInputType.number,
                         inputFormatters: <TextInputFormatter>[
                           FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -1137,7 +1140,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                       children: [
                         Text('${getWorkoutHistoryString(workoutHistory.weight)} LBS'),
                         const Spacer(),
-                        Text('${getWorkoutHistoryString(workoutHistory.sets)} Sets '),
+                        Text('${getWorkoutHistoryString(workoutHistory.sets)} Sets'),
                         const Spacer(),
                         Text('${getWorkoutHistoryString(workoutHistory.reps)} Reps'),
                       ],
@@ -1195,7 +1198,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                       children: [
                         Text('Duration: ${workoutHistory.duration}'),
                         const Spacer(),
-                        Text('${getWorkoutHistoryString(workoutHistory.distance)} Mi '),
+                        Text('${getWorkoutHistoryString(workoutHistory.distance)} Mi'),
                       ],
                     ),
                   ),
@@ -1205,7 +1208,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     child: Row(
                       //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('${getWorkoutHistoryString(workoutHistory.heartRate)} BPM '),
+                        Text('Heart Rate: ${getWorkoutHistoryString(workoutHistory.heartRate)}'),
                         const Spacer(),
                         Text('${getWorkoutHistoryString(workoutHistory.calories)} Cal'),
                       ],
@@ -1262,7 +1265,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                       children: [
                         Text('${getWorkoutHistoryString(workoutHistory.weight)} LBS'),
                         const Spacer(),
-                        Text('${getWorkoutHistoryString(workoutHistory.sets)} Sets '),
+                        Text('${getWorkoutHistoryString(workoutHistory.sets)} Sets'),
                         const Spacer(),
                         Text('${getWorkoutHistoryString(workoutHistory.reps)} Reps'),
                       ],
@@ -1276,7 +1279,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                       children: [
                         Text('Duration: ${workoutHistory.duration}'),
                         const Spacer(),
-                        Text('${getWorkoutHistoryString(workoutHistory.distance)} Mi '),
+                        Text('${getWorkoutHistoryString(workoutHistory.distance)} Mi'),
                       ],
                     ),
                   ),
@@ -1286,7 +1289,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     child: Row(
                       //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('${getWorkoutHistoryString(workoutHistory.heartRate)} BPM '),
+                        Text('Heart Rate: ${getWorkoutHistoryString(workoutHistory.heartRate)}'),
                         const Spacer(),
                         Text('${getWorkoutHistoryString(workoutHistory.calories)} Cal'),
                       ],
@@ -1892,7 +1895,7 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                       return null;
                                     },
                                     decoration: const InputDecoration(
-                                        hintText: "Weight", labelText: "Weight"),
+                                        hintText: "LBS", labelText: "Weight"),
                                     keyboardType: TextInputType.number,
                                     inputFormatters: <TextInputFormatter>[
                                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -2084,7 +2087,7 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                       return null;
                                     },
                                     decoration: const InputDecoration(
-                                        hintText: "Distance", labelText: "Distance"),
+                                        hintText: "Miles", labelText: "Distance"),
                                     keyboardType: TextInputType.number,
                                     inputFormatters: <TextInputFormatter>[
                                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -2166,7 +2169,7 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                       return null;
                                     },
                                     decoration: const InputDecoration(
-                                        hintText: "Heart Rate", labelText: "Heart Rate"),
+                                        hintText: "BPM", labelText: "Heart Rate"),
                                     keyboardType: TextInputType.number,
                                     inputFormatters: <TextInputFormatter>[
                                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -2254,7 +2257,9 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
             workout.name,
             textAlign: TextAlign.center,
           ),
-          bottom: const TabBar(tabs: <Widget>[
+          bottom: const TabBar(
+              indicatorColor: Colors.white,
+              tabs: <Widget>[
             SizedBox(
               height: 30.0,
               child: Align(
@@ -2932,7 +2937,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
                         return null;
                       },
                       decoration: const InputDecoration(
-                          hintText: "Weight", labelText: "Weight"),
+                          hintText: "LBS", labelText: "Weight"),
                       keyboardType: TextInputType.number,
                       inputFormatters: <TextInputFormatter>[
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -3122,7 +3127,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
                         return null;
                       },
                       decoration: const InputDecoration(
-                          hintText: "Distance", labelText: "Distance"),
+                          hintText: "Miles", labelText: "Distance"),
                       keyboardType: TextInputType.number,
                       inputFormatters: <TextInputFormatter>[
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -3204,7 +3209,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
                         return null;
                       },
                       decoration: const InputDecoration(
-                          hintText: "Heart Rate", labelText: "Heart Rate"),
+                          hintText: "BPM", labelText: "Heart Rate"),
                       keyboardType: TextInputType.number,
                       inputFormatters: <TextInputFormatter>[
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
