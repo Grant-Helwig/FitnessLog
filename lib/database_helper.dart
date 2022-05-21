@@ -12,7 +12,7 @@ const String columnWorkoutName = 'workoutName';
 const String columnWorkoutType = 'workoutType';
 const String columnDate = 'date';
 const String columnWeight = 'weight';
-const String columnTimer = 'timer';
+const String columnDuration = 'duration';
 const String columnDistance = 'distance';
 const String columnCalories = 'calories';
 const String columnHeartRate = 'heartRate';
@@ -37,7 +37,7 @@ class WorkoutHistory {
   late int workoutType;
   late String date;
   late double weight;
-  late double timer;
+  late String duration;
   late double distance;
   late double calories;
   late double heartRate;
@@ -53,7 +53,7 @@ class WorkoutHistory {
     workoutType = map[columnWorkoutType];
     date = map[columnDate];
     weight = map[columnWeight];
-    timer = map[columnTimer];
+    duration = map[columnDuration];
     distance = map[columnDistance];
     calories = map[columnCalories];
     heartRate = map[columnHeartRate];
@@ -69,7 +69,7 @@ class WorkoutHistory {
       columnWorkoutType:workoutType,
       columnDate: date,
       columnWeight: weight,
-      columnTimer: timer,
+      columnDuration: duration,
       columnDistance: distance,
       columnCalories: calories,
       columnHeartRate: heartRate,
@@ -256,7 +256,7 @@ class DatabaseHelper {
                 $columnWorkoutId INTEGER NOT NULL,
                 $columnDate TEXT NOT NULL,
                 $columnWeight DOUBLE NOT NULL,
-                $columnTimer DOUBLE NOT NULL,
+                $columnDuration TEXT NOT NULL,
                 $columnDistance DOUBLE NOT NULL,
                 $columnCalories DOUBLE NOT NULL,
                 $columnHeartRate DOUBLE NOT NULL,
@@ -323,7 +323,7 @@ class DatabaseHelper {
           columnWorkoutType,
           columnDate,
           columnWeight,
-          columnTimer,
+          columnDuration,
           columnDistance,
           columnCalories,
           columnHeartRate,
@@ -399,7 +399,7 @@ class DatabaseHelper {
           columnWorkoutType,
           columnDate,
           columnWeight,
-          columnTimer,
+          columnDuration,
           columnDistance,
           columnCalories,
           columnHeartRate,

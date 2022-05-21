@@ -1,4 +1,6 @@
-import 'package:duration_picker_dialog_box/duration_picker_dialog_box.dart';
+//import 'package:duration_picker_dialog_box/duration_picker_dialog_box.dart';
+import 'package:duration/duration.dart';
+import 'package:flutter_picker/flutter_picker.dart';
 import 'package:unicons/unicons.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
@@ -532,8 +534,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
         text: workout != null ? workout!.name : workoutStrings[0]);
     TextEditingController weightController = TextEditingController(
         text: workoutHistory.weight == 0 ? null : workoutHistory.weight.toString());
-    TextEditingController timerController = TextEditingController(
-        text: workoutHistory.timer == 0 ? null : workoutHistory.timer.toString());
+    TextEditingController timerController = TextEditingController(text: workoutHistory.duration);
     TextEditingController setController = TextEditingController(
         text: workoutHistory.sets == 0 ? null : workoutHistory.sets.toString());
     TextEditingController repController = TextEditingController(
@@ -601,8 +602,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                                           mostRecentWorkoutHistory.weight
                                               .toString();
                                       timerController.text =
-                                          mostRecentWorkoutHistory.timer
-                                              .toString();
+                                          mostRecentWorkoutHistory.duration;
                                       setController.text =
                                           mostRecentWorkoutHistory.sets
                                               .toString();
@@ -650,10 +650,9 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                             }
                           }
                           if(curWorkout.type == WorkoutType.both.index){
-                            if(timerController.text.isEmpty &&
+                            if(timerController.text == "0:00:00" &&
                                 setController.text.isEmpty &&
                                 repController.text.isEmpty &&
-                                timerController.text.isEmpty &&
                                 distanceController.text.isEmpty &&
                                 caloriesController.text.isEmpty &&
                                 heartRateController.text.isEmpty){
@@ -695,10 +694,9 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                                   }
 
                                   if(curWorkout.type == WorkoutType.both.index){
-                                    if(timerController.text.isEmpty &&
+                                    if(timerController.text == "0:00:00" &&
                                         weightController.text.isEmpty &&
                                         repController.text.isEmpty &&
-                                        timerController.text.isEmpty &&
                                         distanceController.text.isEmpty &&
                                         caloriesController.text.isEmpty &&
                                         heartRateController.text.isEmpty){
@@ -735,10 +733,9 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                                   }
 
                                   if(curWorkout.type == WorkoutType.both.index){
-                                    if(timerController.text.isEmpty &&
+                                    if(timerController.text == "0:00:00" &&
                                         weightController.text.isEmpty &&
                                         setController.text.isEmpty &&
-                                        timerController.text.isEmpty &&
                                         distanceController.text.isEmpty &&
                                         caloriesController.text.isEmpty &&
                                         heartRateController.text.isEmpty){
@@ -770,15 +767,15 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           curWorkout.type == WorkoutType.both.index,
                       child: TextFormField(
                         controller: timerController,
+                        readOnly: true,
                         validator: (value) {
                           if(value != null){
-                            if(value.isNotEmpty){
+                            if(value.isNotEmpty && value != "0:00:00"){
                               return null;
                             }
                           }
                           if(curWorkout.type == WorkoutType.both.index){
-                            if(timerController.text.isEmpty &&
-                                weightController.text.isEmpty &&
+                            if(weightController.text.isEmpty &&
                                 setController.text.isEmpty &&
                                 repController.text.isEmpty &&
                                 distanceController.text.isEmpty &&
@@ -800,21 +797,35 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                         decoration: const InputDecoration(
                             hintText: "Duration", labelText: "Duration"),
                         onTap: () async{
-                          double? curTimer = double.tryParse(timerController.text);
+                          log("current timer${timerController.text}");
+                          Duration? curTimer = parseDuration(timerController.text); //double.tryParse(timerController.text);
+
                           Duration? duration;
                           if(curTimer != null){
-                            duration = await showDurationPicker(context: context,
-                                initialDuration: Duration(microseconds: curTimer.toInt()),
-                              //durationPickerMode: DurationPickerMode.values
-                            );
+                            // duration = await showDurationPicker(context: context,
+                            //     initialDuration: Duration(microseconds: curTimer.toInt()),
+                            //     durationPickerMode: DurationPickerMode.Hour
+                            //);
+                            log("current timer${timerController.text}");
+                            duration = await selectDuration(context, curTimer);
                           } else {
-                            duration = await showDurationPicker(context: context, initialDuration: const Duration(microseconds: 0));
+                            // duration = await showDurationPicker(context: context,
+                            //     initialDuration: const Duration(microseconds: 0),
+                            //     durationPickerMode: DurationPickerMode.Hour
+                            //);
+                            log("current timer is null");
+                            duration = await selectDuration(context,const Duration(microseconds: 0));
                           }
+                          log("saved duration ${duration.inSeconds.toString()}");
+
+                          setState(() {
+                            timerController.text = duration.toString().substring(0, duration.toString().indexOf('.'));
+                          });
                         },
-                        keyboardType: TextInputType.number,
-                        inputFormatters: <TextInputFormatter>[
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                        ],
+                        // keyboardType: TextInputType.number,
+                        // inputFormatters: <TextInputFormatter>[
+                        //   FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                        //],
                       ),
                     ),
                     Visibility(
@@ -830,18 +841,17 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                             }
 
                             if(curWorkout.type == WorkoutType.both.index){
-                              if(timerController.text.isEmpty &&
+                              if(timerController.text == "0:00:00" &&
                                   weightController.text.isEmpty &&
                                   setController.text.isEmpty &&
                                   repController.text.isEmpty &&
-                                  timerController.text.isEmpty &&
                                   caloriesController.text.isEmpty &&
                                   heartRateController.text.isEmpty){
                                 return "Must Fill Out a Field";
                               }
 
                             } else if(curWorkout.type == WorkoutType.cardio.index){
-                              if(timerController.text.isEmpty &&
+                              if(timerController.text == "0:00:00" &&
                                   caloriesController.text.isEmpty &&
                                   heartRateController.text.isEmpty){
                                 return "Must Fill Out a Field";
@@ -871,19 +881,18 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           }
 
                           if(curWorkout.type == WorkoutType.both.index){
-                            if(timerController.text.isEmpty &&
+                            if(timerController.text == "0:00:00" &&
                                 weightController.text.isEmpty &&
                                 setController.text.isEmpty &&
                                 repController.text.isEmpty &&
                                 distanceController.text.isEmpty &&
-                                timerController.text.isEmpty &&
                                 heartRateController.text.isEmpty){
                               return "Must Fill Out a Field";
                             }
 
                           } else if(curWorkout.type == WorkoutType.cardio.index){
                             if(distanceController.text.isEmpty &&
-                                timerController.text.isEmpty &&
+                                timerController.text == "0:00:00" &&
                                 heartRateController.text.isEmpty){
                               return "Must Fill Out a Field";
                             }
@@ -912,20 +921,19 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           }
 
                           if(curWorkout.type == WorkoutType.both.index){
-                            if(timerController.text.isEmpty &&
+                            if(timerController.text == "0:00:00" &&
                                 weightController.text.isEmpty &&
                                 setController.text.isEmpty &&
                                 repController.text.isEmpty &&
                                 distanceController.text.isEmpty &&
-                                caloriesController.text.isEmpty &&
-                                timerController.text.isEmpty){
+                                caloriesController.text.isEmpty){
                               return "Must Fill Out a Field";
                             }
 
                           } else if(curWorkout.type == WorkoutType.cardio.index){
                             if(distanceController.text.isEmpty &&
                                 caloriesController.text.isEmpty &&
-                                timerController.text.isEmpty){
+                                timerController.text == "0:00:00"){
                               return "Must Fill Out a Field";
                             }
 
@@ -986,10 +994,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           weightController.text.isEmpty
                               ? "0"
                               : weightController.text);
-                      workoutHistory.timer = double.parse(
-                          timerController.text.isEmpty
-                              ? "0"
-                              : timerController.text);
+                      workoutHistory.duration = timerController.text;
                       workoutHistory.distance = double.parse(
                           distanceController.text.isEmpty
                               ? "0"
@@ -1026,9 +1031,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           double.parse(weightController.text.isEmpty
                               ? "0"
                               : weightController.text),
-                          double.parse(timerController.text.isEmpty
-                              ? "0"
-                              : timerController.text),
+                          timerController.text,
                           double.parse(distanceController.text.isEmpty
                               ? "0"
                               : distanceController.text),
@@ -1173,7 +1176,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     child: Row(
                       //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Duration: ${getWorkoutHistoryString(workoutHistory.timer)}'),
+                        Text('Duration: ${workoutHistory.duration}'),
                         const Spacer(),
                         Text('${getWorkoutHistoryString(workoutHistory.distance)} Mi '),
                       ],
@@ -1254,7 +1257,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     child: Row(
                       //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Duration: ${getWorkoutHistoryString(workoutHistory.timer)}'),
+                        Text('Duration: ${workoutHistory.duration}'),
                         const Spacer(),
                         Text('${getWorkoutHistoryString(workoutHistory.distance)} Mi '),
                       ],
@@ -1720,13 +1723,14 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
     GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     bool cardCompleted = false;
     TextEditingController weightController = TextEditingController();
-    TextEditingController timerController = TextEditingController();
+    TextEditingController timerController = TextEditingController(text: Duration().toString().substring(0, Duration().toString().indexOf('.')));
     TextEditingController setController = TextEditingController();
     TextEditingController repController = TextEditingController();
     TextEditingController distanceController = TextEditingController();
     TextEditingController caloriesController = TextEditingController();
     TextEditingController heartRateController = TextEditingController();
 
+    bool setDefault = true;
     //use similar logic to workout history page to validate the card and display the fields
     Future<WorkoutHistory?> recentHistory =
     _mostRecentWorkoutHistoryByWorkout(workout.id);
@@ -1777,23 +1781,42 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
               return FutureBuilder<WorkoutHistory?>(
                 future: recentHistory,
                 builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    weightController = TextEditingController(text: snapshot.data!.weight == 0 ? null : snapshot.data!.weight.toString());
-                    timerController = TextEditingController(text: snapshot.data!.timer == 0 ? null : snapshot.data!.timer.toString());
-                    distanceController = TextEditingController(text: snapshot.data!.distance == 0 ? null :snapshot.data!.distance.toString());
-                    caloriesController = TextEditingController(text: snapshot.data!.calories == 0 ? null : snapshot.data!.calories.toString());
-                    heartRateController = TextEditingController(text: snapshot.data!.heartRate == 0 ? null : snapshot.data!.heartRate.toString());
-                    setController = TextEditingController(text: snapshot.data!.sets == 0 ? null : snapshot.data!.sets.toString());
-                    repController = TextEditingController(text: snapshot.data!.reps == 0 ? null : snapshot.data!.reps.toString());
-                  } else {
-                    weightController.text = "";
-                    timerController.text = "";
-                    setController.text = "";
-                    repController.text = "";
-                    distanceController.text = "";
-                    caloriesController.text = "";
-                    heartRateController.text = "";
+                  if (snapshot.hasData && setDefault) {
+                    log("reset default ${timerController.text}");
+                    weightController = TextEditingController(
+                        text: snapshot.data!.weight == 0 ? null : snapshot.data!
+                            .weight.toString());
+                    timerController = TextEditingController(
+                        text: snapshot.data!.duration == Duration().toString()
+                            ? null
+                            : snapshot.data!.duration);
+                    distanceController = TextEditingController(
+                        text: snapshot.data!.distance == 0 ? null : snapshot
+                            .data!.distance.toString());
+                    caloriesController = TextEditingController(
+                        text: snapshot.data!.calories == 0 ? null : snapshot
+                            .data!.calories.toString());
+                    heartRateController = TextEditingController(
+                        text: snapshot.data!.heartRate == 0 ? null : snapshot
+                            .data!.heartRate.toString());
+                    setController = TextEditingController(
+                        text: snapshot.data!.sets == 0 ? null : snapshot.data!
+                            .sets.toString());
+                    repController = TextEditingController(
+                        text: snapshot.data!.reps == 0 ? null : snapshot.data!
+                            .reps.toString());
+                    setDefault = false;
                   }
+                  // } else if(setDefault) {
+                  //   weightController.text = "";
+                  //   timerController.text = Duration().toString();
+                  //   setController.text = "";
+                  //   repController.text = "";
+                  //   distanceController.text = "";
+                  //   caloriesController.text = "";
+                  //   heartRateController.text = "";
+                  //   setDefault = false;
+                  // }
                   return SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
                     child: Card(
@@ -1833,10 +1856,9 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                         }
                                       }
                                       if(workout.type == WorkoutType.both.index){
-                                        if(timerController.text.isEmpty &&
+                                        if(timerController.text == "0:00:00" &&
                                             setController.text.isEmpty &&
                                             repController.text.isEmpty &&
-                                            timerController.text.isEmpty &&
                                             distanceController.text.isEmpty &&
                                             caloriesController.text.isEmpty &&
                                             heartRateController.text.isEmpty){
@@ -1879,10 +1901,9 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                             }
 
                                             if(workout.type == WorkoutType.both.index){
-                                              if(timerController.text.isEmpty &&
+                                              if(timerController.text == "0:00:00" &&
                                                   weightController.text.isEmpty &&
                                                   repController.text.isEmpty &&
-                                                  timerController.text.isEmpty &&
                                                   distanceController.text.isEmpty &&
                                                   caloriesController.text.isEmpty &&
                                                   heartRateController.text.isEmpty){
@@ -1919,10 +1940,9 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                             }
 
                                             if(workout.type == WorkoutType.both.index){
-                                              if(timerController.text.isEmpty &&
+                                              if(timerController.text == "0:00:00" &&
                                                   weightController.text.isEmpty &&
                                                   setController.text.isEmpty &&
-                                                  timerController.text.isEmpty &&
                                                   distanceController.text.isEmpty &&
                                                   caloriesController.text.isEmpty &&
                                                   heartRateController.text.isEmpty){
@@ -1958,13 +1978,12 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                     controller: timerController,
                                     validator: (value) {
                                       if(value != null){
-                                        if(value.isNotEmpty){
+                                        if(value.isNotEmpty && value != "0:00:00"){
                                           return null;
                                         }
                                       }
                                       if(workout.type == WorkoutType.both.index){
-                                        if(timerController.text.isEmpty &&
-                                            weightController.text.isEmpty &&
+                                        if(weightController.text.isEmpty &&
                                             setController.text.isEmpty &&
                                             repController.text.isEmpty &&
                                             distanceController.text.isEmpty &&
@@ -1983,12 +2002,35 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                       }
                                       return null;
                                     },
+                                    readOnly: true,
                                     decoration: const InputDecoration(
                                         hintText: "Duration", labelText: "Duration"),
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: <TextInputFormatter>[
-                                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                                    ],
+                                      onTap: () async{
+                                        log("current timer${timerController.text}");
+                                        Duration? curTimer = parseDuration(timerController.text); //double.tryParse(timerController.text);
+
+                                        Duration? duration;
+                                        if(curTimer != null){
+                                          // duration = await showDurationPicker(context: context,
+                                          //     initialDuration: Duration(microseconds: curTimer.toInt()),
+                                          //     durationPickerMode: DurationPickerMode.Hour
+                                          //);
+                                          log("current timer${timerController.text}");
+                                          duration = await selectDuration(context, curTimer);
+                                        } else {
+                                          // duration = await showDurationPicker(context: context,
+                                          //     initialDuration: const Duration(microseconds: 0),
+                                          //     durationPickerMode: DurationPickerMode.Hour
+                                          //);
+                                          log("current timer is null");
+                                          duration = await selectDuration(context,const Duration(microseconds: 0));
+                                        }
+                                        log("saved duration ${duration.inSeconds.toString()}");
+
+                                        setState(() {
+                                          timerController.text = duration.toString().substring(0, duration.toString().indexOf('.'));
+                                        });
+                                      },
                                   ),
                                 ),
                                 Visibility(
@@ -2005,18 +2047,17 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                       }
 
                                       if(workout.type == WorkoutType.both.index){
-                                        if(timerController.text.isEmpty &&
+                                        if(timerController.text == "0:00:00" &&
                                             weightController.text.isEmpty &&
                                             setController.text.isEmpty &&
                                             repController.text.isEmpty &&
-                                            timerController.text.isEmpty &&
                                             caloriesController.text.isEmpty &&
                                             heartRateController.text.isEmpty){
                                           return "Must Fill Out a Field";
                                         }
 
                                       } else if(workout.type == WorkoutType.cardio.index){
-                                        if(timerController.text.isEmpty &&
+                                        if(timerController.text == "0:00:00" &&
                                             caloriesController.text.isEmpty &&
                                             heartRateController.text.isEmpty){
                                           return "Must Fill Out a Field";
@@ -2047,19 +2088,18 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                       }
 
                                       if(workout.type == WorkoutType.both.index){
-                                        if(timerController.text.isEmpty &&
+                                        if(timerController.text == "0:00:00" &&
                                             weightController.text.isEmpty &&
                                             setController.text.isEmpty &&
                                             repController.text.isEmpty &&
                                             distanceController.text.isEmpty &&
-                                            timerController.text.isEmpty &&
                                             heartRateController.text.isEmpty){
                                           return "Must Fill Out a Field";
                                         }
 
                                       } else if(workout.type == WorkoutType.cardio.index){
                                         if(distanceController.text.isEmpty &&
-                                            timerController.text.isEmpty &&
+                                            timerController.text == "0:00:00" &&
                                             heartRateController.text.isEmpty){
                                           return "Must Fill Out a Field";
                                         }
@@ -2089,20 +2129,19 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                       }
 
                                       if(workout.type == WorkoutType.both.index){
-                                        if(timerController.text.isEmpty &&
+                                        if(timerController.text == "0:00:00" &&
                                             weightController.text.isEmpty &&
                                             setController.text.isEmpty &&
                                             repController.text.isEmpty &&
                                             distanceController.text.isEmpty &&
-                                            caloriesController.text.isEmpty &&
-                                            timerController.text.isEmpty){
+                                            caloriesController.text.isEmpty){
                                           return "Must Fill Out a Field";
                                         }
 
                                       } else if(workout.type == WorkoutType.cardio.index){
                                         if(distanceController.text.isEmpty &&
                                             caloriesController.text.isEmpty &&
-                                            timerController.text.isEmpty){
+                                            timerController.text == "0:00:00"){
                                           return "Must Fill Out a Field";
                                         }
 
@@ -2138,9 +2177,7 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                                 double.parse(weightController.text.isEmpty
                                                     ? "0"
                                                     : weightController.text),
-                                                double.parse(timerController.text.isEmpty
-                                                    ? "0"
-                                                    : timerController.text),
+                                                timerController.text,
                                                 double.parse(distanceController.text.isEmpty
                                                     ? "0"
                                                     : distanceController.text),
@@ -2797,13 +2834,13 @@ class _RoutineProfileState extends State<RoutineProfile> {
 
   Widget executeWorkoutCard(Workout workout, int index) {
     TextEditingController weightController = TextEditingController();
-    TextEditingController timerController = TextEditingController();
+    TextEditingController timerController = TextEditingController(text: Duration().toString().substring(0, Duration().toString().indexOf('.')));
     TextEditingController setController = TextEditingController();
     TextEditingController repController = TextEditingController();
     TextEditingController distanceController = TextEditingController();
     TextEditingController caloriesController = TextEditingController();
     TextEditingController heartRateController = TextEditingController();
-
+    bool hasDefault = true;
     //use similar logic to workout history page to validate the card and display the fields
     Future<WorkoutHistory?> recentHistory =
         _mostRecentWorkoutHistoryByWorkout(workout.id);
@@ -2812,22 +2849,18 @@ class _RoutineProfileState extends State<RoutineProfile> {
       return FutureBuilder<WorkoutHistory?>(
         future: recentHistory,
         builder: (context, snapshot) {
-          if (snapshot.hasData) {
+          if (snapshot.hasData && hasDefault) {
             weightController = TextEditingController(text: snapshot.data!.weight == 0 ? null : snapshot.data!.weight.toString());
-            timerController = TextEditingController(text: snapshot.data!.timer == 0 ? null : snapshot.data!.timer.toString());
+            timerController = TextEditingController(
+                text: snapshot.data!.duration == Duration().toString()
+                    ? null
+                    : snapshot.data!.duration);
             distanceController = TextEditingController(text: snapshot.data!.distance == 0 ? null :snapshot.data!.distance.toString());
             caloriesController = TextEditingController(text: snapshot.data!.calories == 0 ? null : snapshot.data!.calories.toString());
             heartRateController = TextEditingController(text: snapshot.data!.heartRate == 0 ? null : snapshot.data!.heartRate.toString());
             setController = TextEditingController(text: snapshot.data!.sets == 0 ? null : snapshot.data!.sets.toString());
             repController = TextEditingController(text: snapshot.data!.reps == 0 ? null : snapshot.data!.reps.toString());
-          } else {
-            weightController.text = "";
-            timerController.text = "";
-            setController.text = "";
-            repController.text = "";
-            distanceController.text = "";
-            caloriesController.text = "";
-            heartRateController.text = "";
+            hasDefault = false;
           }
           return Card(
               shape: RoundedRectangleBorder(
@@ -2863,10 +2896,9 @@ class _RoutineProfileState extends State<RoutineProfile> {
                           }
                         }
                         if(workout.type == WorkoutType.both.index){
-                          if(timerController.text.isEmpty &&
+                          if(timerController.text == "0:00:00" &&
                           setController.text.isEmpty &&
                           repController.text.isEmpty &&
-                          timerController.text.isEmpty &&
                           distanceController.text.isEmpty &&
                           caloriesController.text.isEmpty &&
                           heartRateController.text.isEmpty){
@@ -2909,10 +2941,9 @@ class _RoutineProfileState extends State<RoutineProfile> {
                               }
 
                               if(workout.type == WorkoutType.both.index){
-                                if(timerController.text.isEmpty &&
+                                if(timerController.text == "0:00:00" &&
                                     weightController.text.isEmpty &&
                                     repController.text.isEmpty &&
-                                    timerController.text.isEmpty &&
                                     distanceController.text.isEmpty &&
                                     caloriesController.text.isEmpty &&
                                     heartRateController.text.isEmpty){
@@ -2949,10 +2980,9 @@ class _RoutineProfileState extends State<RoutineProfile> {
                               }
 
                               if(workout.type == WorkoutType.both.index){
-                                if(timerController.text.isEmpty &&
+                                if(timerController.text == "0:00:00" &&
                                     weightController.text.isEmpty &&
                                     setController.text.isEmpty &&
-                                    timerController.text.isEmpty &&
                                     distanceController.text.isEmpty &&
                                     caloriesController.text.isEmpty &&
                                     heartRateController.text.isEmpty){
@@ -2988,12 +3018,12 @@ class _RoutineProfileState extends State<RoutineProfile> {
                       controller: timerController,
                       validator: (value) {
                         if(value != null){
-                          if(value.isNotEmpty){
+                          if(value.isNotEmpty && value != "0:00:00"){
                             return null;
                           }
                         }
                         if(workout.type == WorkoutType.both.index){
-                          if(timerController.text.isEmpty &&
+                          if(timerController.text == "0:00:00" &&
                               weightController.text.isEmpty &&
                               setController.text.isEmpty &&
                               repController.text.isEmpty &&
@@ -3013,12 +3043,32 @@ class _RoutineProfileState extends State<RoutineProfile> {
                         }
                         return null;
                       },
-                      decoration: const InputDecoration(
-                          hintText: "Duration", labelText: "Duration"),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                      ],
+                      onTap: () async{
+                        log("current timer${timerController.text}");
+                        Duration? curTimer = parseDuration(timerController.text); //double.tryParse(timerController.text);
+
+                        Duration? duration;
+                        if(curTimer != null){
+                          // duration = await showDurationPicker(context: context,
+                          //     initialDuration: Duration(microseconds: curTimer.toInt()),
+                          //     durationPickerMode: DurationPickerMode.Hour
+                          //);
+                          log("current timer${timerController.text}");
+                          duration = await selectDuration(context, curTimer);
+                        } else {
+                          // duration = await showDurationPicker(context: context,
+                          //     initialDuration: const Duration(microseconds: 0),
+                          //     durationPickerMode: DurationPickerMode.Hour
+                          //);
+                          log("current timer is null");
+                          duration = await selectDuration(context,const Duration(microseconds: 0));
+                        }
+                        log("saved duration ${duration.inSeconds.toString()}");
+
+                        setState(() {
+                          timerController.text = duration.toString().substring(0, duration.toString().indexOf('.'));
+                        });
+                      },
                     ),
                   ),
                   Visibility(
@@ -3035,18 +3085,17 @@ class _RoutineProfileState extends State<RoutineProfile> {
                         }
 
                         if(workout.type == WorkoutType.both.index){
-                          if(timerController.text.isEmpty &&
+                          if(timerController.text == "0:00:00" &&
                               weightController.text.isEmpty &&
                               setController.text.isEmpty &&
                               repController.text.isEmpty &&
-                              timerController.text.isEmpty &&
                               caloriesController.text.isEmpty &&
                               heartRateController.text.isEmpty){
                             return "Must Fill Out a Field";
                           }
 
                         } else if(workout.type == WorkoutType.cardio.index){
-                          if(timerController.text.isEmpty &&
+                          if(timerController.text == "0:00:00" &&
                               caloriesController.text.isEmpty &&
                               heartRateController.text.isEmpty){
                             return "Must Fill Out a Field";
@@ -3077,19 +3126,18 @@ class _RoutineProfileState extends State<RoutineProfile> {
                         }
 
                         if(workout.type == WorkoutType.both.index){
-                          if(timerController.text.isEmpty &&
+                          if(timerController.text == "0:00:00" &&
                               weightController.text.isEmpty &&
                               setController.text.isEmpty &&
                               repController.text.isEmpty &&
                               distanceController.text.isEmpty &&
-                              timerController.text.isEmpty &&
                               heartRateController.text.isEmpty){
                             return "Must Fill Out a Field";
                           }
 
                         } else if(workout.type == WorkoutType.cardio.index){
                           if(distanceController.text.isEmpty &&
-                              timerController.text.isEmpty &&
+                              timerController.text == "0:00:00" &&
                               heartRateController.text.isEmpty){
                             return "Must Fill Out a Field";
                           }
@@ -3119,20 +3167,19 @@ class _RoutineProfileState extends State<RoutineProfile> {
                         }
 
                         if(workout.type == WorkoutType.both.index){
-                          if(timerController.text.isEmpty &&
+                          if(timerController.text == "0:00:00"&&
                               weightController.text.isEmpty &&
                               setController.text.isEmpty &&
                               repController.text.isEmpty &&
                               distanceController.text.isEmpty &&
-                              caloriesController.text.isEmpty &&
-                              timerController.text.isEmpty){
+                              caloriesController.text.isEmpty){
                             return "Must Fill Out a Field";
                           }
 
                         } else if(workout.type == WorkoutType.cardio.index){
                           if(distanceController.text.isEmpty &&
                               caloriesController.text.isEmpty &&
-                              timerController.text.isEmpty){
+                              timerController.text == "0:00:00"){
                             return "Must Fill Out a Field";
                           }
 
@@ -3168,9 +3215,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
                                   double.parse(weightController.text.isEmpty
                                       ? "0"
                                       : weightController.text),
-                                  double.parse(timerController.text.isEmpty
-                                      ? "0"
-                                      : timerController.text),
+                                  timerController.text,
                                   double.parse(distanceController.text.isEmpty
                                       ? "0"
                                       : distanceController.text),
@@ -3491,7 +3536,8 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
       case WorkoutType.cardio:
         List<double> dataDuration = [];
         double highestDuration =
-            workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
+            parseDuration(workoutHistory.reduce((a, b)
+            => parseDuration(a.duration).inSeconds > parseDuration(b.duration).inSeconds ? a : b).duration).inSeconds.toDouble();
         List<double> dataDistance = [];
         double highestDistance =
             workoutHistory.reduce((a, b) => a.distance > b.distance ? a : b).distance;
@@ -3503,7 +3549,7 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
             workoutHistory.reduce((a, b) => a.heartRate > b.heartRate ? a : b).heartRate;
 
         for (var history in workoutHistory) {
-          dataDuration.add(history.timer / highestDuration);
+          dataDuration.add(parseDuration(history.duration).inSeconds / highestDuration);
           dataDistance.add(history.distance / highestDistance);
           dataCalories.add(history.calories / highestCalories);
           dataHeartRate.add(history.heartRate / highestHeartRate);
@@ -3527,7 +3573,7 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Text("Max Duration $highestDuration "),
+                child: Text("Max Duration $highestDuration Seconds"),
               ),
             ),
             SingleChildScrollView(
@@ -3650,11 +3696,13 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
         );
       case WorkoutType.both:
         List<double> dataWeight = [];
-        List<double> dataDuration = [];
         double highestWeight =
             workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
+
+        List<double> dataDuration = [];
         double highestDuration =
-            workoutHistory.reduce((a, b) => a.timer > b.timer ? a : b).timer;
+          parseDuration(workoutHistory.reduce((a, b)
+            => parseDuration(a.duration).inSeconds > parseDuration(b.duration).inSeconds ? a : b).duration).inSeconds as double;
 
         List<double> dataDistance = [];
         double highestDistance =
@@ -3679,7 +3727,7 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
 
         for (var history in workoutHistory) {
           dataWeight.add(history.weight / highestWeight);
-          dataDuration.add(history.timer / highestDuration);
+          dataDuration.add(parseDuration(history.duration).inSeconds / highestDuration);
 
 
           dataDistance.add(history.distance / highestDistance);
@@ -3814,7 +3862,7 @@ Widget? _graphFeaturesByWorkoutAndDate(List<WorkoutHistory>? workoutHistory, Bui
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Text("Max Duration $highestDuration "),
+                child: Text("Max Duration $highestDuration Seconds"),
               ),
             ),
             SingleChildScrollView(
@@ -4180,7 +4228,7 @@ Future<List<Routine>?> _readAllRoutinesDropdown() async {
 }
 
 _saveWorkoutHistory(String workoutName, int type, DateTime date, int sets,
-    int reps, double weight, double timer, double distance, double calories,
+    int reps, double weight, String duration, double distance, double calories,
     double heartRate, int workoutId) async {
   WorkoutHistory workout = WorkoutHistory();
   workout.workoutName = workoutName;
@@ -4189,7 +4237,7 @@ _saveWorkoutHistory(String workoutName, int type, DateTime date, int sets,
   workout.sets = sets;
   workout.reps = reps;
   workout.weight = weight;
-  workout.timer = timer;
+  workout.duration = duration;
   workout.distance = distance;
   workout.calories = calories;
   workout.heartRate = heartRate;
@@ -4429,4 +4477,57 @@ String getWorkoutHistoryString(dynamic number){
   } else {
     return "0";
   }
+}
+
+Future<Duration> selectDuration(BuildContext context, Duration defaultDuration) async {
+  Duration _duration = const Duration();
+  log((((defaultDuration.inSeconds / 60) / 60) / 60).floor().toString());
+  var temp = await Picker(
+    adapter: NumberPickerAdapter(data: <NumberPickerColumn>[
+      NumberPickerColumn(begin: 0, end: 999, suffix: const Text('h'), initValue: ((defaultDuration.inSeconds / 60) / 60).floor()),
+      NumberPickerColumn(begin: 0, end: 60, suffix: const Text('m'), initValue: defaultDuration.inMinutes % 60),
+      NumberPickerColumn(begin: 0, end: 60, suffix: const Text('s'), initValue: defaultDuration.inSeconds % 60),
+    ]),
+    delimiter: <PickerDelimiter>[
+      PickerDelimiter(
+        child: Container(
+          width: 30.0,
+          alignment: Alignment.center,
+          child: Icon(Icons.more_vert),
+        ),
+      )
+    ],
+    hideHeader: true,
+    confirmText: 'OK',
+    confirmTextStyle: TextStyle(inherit: false, color: Colors.red, fontSize: 22),
+    title: const Text('Select duration'),
+    selectedTextStyle: TextStyle(color: Colors.blue),
+    onConfirm: (Picker picker, List<int> value) {
+      // You get your duration here
+      _duration = Duration(hours: picker.getSelectedValues()[0], minutes: picker.getSelectedValues()[1], seconds: picker.getSelectedValues()[2]);
+    },
+  ).showDialog(context);
+  return _duration;
+}
+
+String printDuration(Duration duration) {
+  String twoDigits(int n) => n.toString().padLeft(2, "0");
+  String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+  String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+  return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+}
+
+Duration parseDuration(String s) {
+  int hours = 0;
+  int minutes = 0;
+  int micros;
+  List<String> parts = s.split(':');
+  if (parts.length > 2) {
+    hours = int.parse(parts[parts.length - 3]);
+  }
+  if (parts.length > 1) {
+    minutes = int.parse(parts[parts.length - 2]);
+  }
+  micros = (double.parse(parts[parts.length - 1]) * 1000000).round();
+  return Duration(hours: hours, minutes: minutes, microseconds: micros);
 }
