@@ -239,9 +239,8 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
       firstDate: dateStart,
       lastDate: dateEnd,
       currentDate: now,
-      saveText: 'Done',
+      saveText: 'Done'
     );
-
     if (result != null) {
       var dropdownList = await _routineDropdown;
       setState(() {
@@ -549,6 +548,8 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
         add ? DateTime.now() : DateTime.parse(workoutHistory.date);
     TextEditingController dateController = TextEditingController(
         text: DateFormat('yyyy/MM/dd').format(myDateTime));
+    TextEditingController timeController = TextEditingController(
+        text: DateFormat('hh:mm a').format(myDateTime));
 
     return await showDialog(
       context: context,
@@ -964,6 +965,22 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                             DateFormat('yyyy/MM/dd').format(myDateTime);
                         setState(() {});
                       },
+                    ),
+                    TextField(
+                      controller: timeController,
+                      readOnly: true,
+                      onTap: () async {
+                        var timeTemp = (await showTimePicker(
+                          context: context,
+                          initialTime:TimeOfDay.fromDateTime(DateTime.parse(workoutHistory.date))
+                        ));
+                        if(timeTemp != null){
+                          myDateTime = DateTime(myDateTime.year, myDateTime.month, myDateTime.day, timeTemp.hour, timeTemp.minute);
+                          timeController.text =
+                              DateFormat('hh:mm a').format(myDateTime);
+                          setState(() {});
+                        }
+                      },
                     )
                   ],
                 ),
@@ -1106,7 +1123,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                         Text('${workoutHistory.workoutName} '),
                         const Spacer(),
                         Text(
-                          DateFormat('yyyy/MM/dd')
+                          DateFormat('yyyy/MM/dd hh:mm a')
                               .format(DateTime.parse(workoutHistory.date)),
                           style: const TextStyle(fontSize: 10),
                         ),
@@ -1163,7 +1180,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                         Text('${workoutHistory.workoutName} '),
                         const Spacer(),
                         Text(
-                          DateFormat('yyyy/MM/dd')
+                          DateFormat('yyyy/MM/dd hh:mm a')
                               .format(DateTime.parse(workoutHistory.date)),
                           style: const TextStyle(fontSize: 10),
                         ),
@@ -1231,7 +1248,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                         Text('${workoutHistory.workoutName} '),
                         const Spacer(),
                         Text(
-                          DateFormat('yyyy/MM/dd')
+                          DateFormat('yyyy/MM/dd hh:mm a')
                               .format(DateTime.parse(workoutHistory.date)),
                           style: const TextStyle(fontSize: 10),
                         ),
