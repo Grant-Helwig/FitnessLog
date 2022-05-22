@@ -7,10 +7,15 @@ class WorkoutBloc {
 
   final _workoutController = StreamController<List<Workout>?>.broadcast();
 
-  get workouts => _workoutController.stream;
+  final _activeWorkoutController = StreamController<Workout?>.broadcast();
 
-  WorkoutBloc() {
+  Stream<List<Workout>?> get workouts => _workoutController.stream;
+
+  Stream<Workout?> get activeWorkout => _activeWorkoutController.stream;
+
+  WorkoutBloc({Workout? workout}) {
     getWorkouts();
+    setActiveWorkout(workout: workout);
   }
 
   getWorkouts() async {
@@ -42,5 +47,9 @@ class WorkoutBloc {
   deleteWorkout({required Workout workout, String? workoutName}) async {
     await repo.deleteWorkout(workout.id);
     getWorkoutsConditional(workoutName: workoutName);
+  }
+
+  setActiveWorkout({Workout? workout}){
+    _activeWorkoutController.sink.add(workout);
   }
 }

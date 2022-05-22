@@ -81,8 +81,8 @@ class _MyHomePageState extends State<MyHomePage> {
         body: const TabBarView(
           children: <Widget>[
             //Null workout object because we are viewing history for all workouts
-            //WorkoutHistoryPage(workout: null),
-            WorkoutPage(),
+            WorkoutHistoryPage(workout: null),
+            //WorkoutPage(),
             WorkoutPage(),
             WorkoutPage()
            // RoutinePage()

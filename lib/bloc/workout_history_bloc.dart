@@ -45,17 +45,17 @@ class WorkoutHistoryBloc {
     }
   }
 
-  addWorkout({required WorkoutHistory workoutHistory, Routine? routine, DateTimeRange? range}) async {
+  addWorkoutHistory({required WorkoutHistory workoutHistory, Routine? routine, DateTimeRange? range}) async {
     await repo.saveWorkoutHistory(workoutHistory);
     getWorkoutHistoryConditional(routine: routine,range: range);
   }
 
-  updateWorkout({required WorkoutHistory workoutHistory, Routine? routine, DateTimeRange? range}) async {
+  updateWorkoutHistory({required WorkoutHistory workoutHistory, Routine? routine, DateTimeRange? range}) async {
     await repo.updateWorkoutHistory(workoutHistory);
     getWorkoutHistoryConditional(routine: routine,range: range);
   }
 
-  deleteWorkout({required WorkoutHistory workoutHistory, Routine? routine, DateTimeRange? range}) async {
+  deleteWorkoutHistory({required WorkoutHistory workoutHistory, Routine? routine, DateTimeRange? range}) async {
     await repo.deleteWorkoutHistory(workoutHistory.id);
     getWorkoutHistoryConditional(routine: routine,range: range);
   }
