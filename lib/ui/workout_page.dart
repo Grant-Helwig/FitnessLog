@@ -5,7 +5,6 @@ import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:unicons/unicons.dart';
 
 import '../bloc/workout_bloc.dart';
-import '../bloc/workout_history_bloc.dart';
 import '../model/routine_entry.dart';
 import '../model/workout.dart';
 import '../model/workout_history.dart';
@@ -228,7 +227,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         // dismiss keyboard during async call
                         FocusScope.of(context).requestFocus(new FocusNode());
 
-                        bool isDupe = await workoutBloc.workoutNameExists(workoutController.text);
+                        bool isDupe = await repo.workoutNameExists(workoutController.text);
 
 
                         //finish validation and exit async call
@@ -244,24 +243,21 @@ class _WorkoutPageState extends State<WorkoutPage> {
                           workout.name = workoutController.text;
                           workout.type = typeIndexController!;
                           if (!add) {
-                            workoutBloc.updateWorkout(workout);
-                            //_updateWorkout(workout);
-                            repo.updateWorkoutHistoryByWorkout(
+                            //await repo.updateWorkout(workout);
+                            await workoutBloc.updateWorkout(workout: workout, workoutName: searchController.text.isEmpty ? null : searchController.text);
+                            await repo.updateWorkoutHistoryByWorkout(
                                 workout.id, workoutController.text);
-                            repo.updateRoutineEntryByWorkout(
+                            await repo.updateRoutineEntryByWorkout(
                                 workout.id, workout.type, workoutController.text);
                           } else {
-                            log("adding");
-                            workoutBloc.addWorkout(workout);
-                            // _saveWorkout(
-                            //   workoutController.text,
-                            //   typeIndexController!,
-                            // );
+                            //repo.saveWorkout(workout);
+                            workoutBloc.addWorkout(workout: workout, workoutName: searchController.text.isEmpty ? null : searchController.text);
                           }
-                          // setState(() {
-                          //   workouts = _readAllWorkouts();
-                          // });
-
+                          // if(searchController.text.isNotEmpty){
+                          //   workoutBloc.getWorkoutsByName(searchController.text.toLowerCase());
+                          // } else {
+                          //   workoutBloc.getWorkouts();
+                          // }
                           Navigator.of(context).pop();
                         }
                       }
@@ -342,7 +338,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                     List<RoutineEntry>? routineEntriesForWorkout =
                     await repo.routineEntryByWorkout(workout.id);
                     if (historyForWorkout == null && routineEntriesForWorkout == null) {
-                      await workoutBloc.deleteWorkout(workout);
+                      await workoutBloc.deleteWorkout(workout: workout);
                     } else {
                       return cantDeleteAlert();
                     }

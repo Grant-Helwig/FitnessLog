@@ -39,6 +39,7 @@ class WorkoutRepository {
   Future deleteRoutine (int _id) => workoutDao.deleteRoutine(_id);
   Future updateRoutine (Routine routine) => workoutDao.updateRoutine(routine);
   Future<List<Routine>?> readAllRoutines () => workoutDao.readAllRoutines();
+  Future<List<Routine>?> readAllRoutinesDropdown () => workoutDao.readAllRoutinesDropdown();
 
   Future saveRoutineEntry (RoutineEntry routineEntry) => workoutDao.saveRoutineEntry(routineEntry);
   Future deleteRoutineEntry (int _id) => workoutDao.deleteRoutineEntry(_id);

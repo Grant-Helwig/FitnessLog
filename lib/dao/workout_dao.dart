@@ -86,7 +86,7 @@ class WorkoutDao {
       log('read row empty');
       return null;
     } else {
-      workouts.sort((a, b) => a.name.compareTo(b.name));
+      workouts.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       return workouts;
     }
   }
@@ -100,7 +100,7 @@ class WorkoutDao {
     } else {
       List<Workout> filteredWorkouts =
       workouts.where((element) => element.name.toLowerCase().contains(search)).toList();
-      filteredWorkouts.sort((a, b) => a.name.compareTo(b.name));
+      filteredWorkouts.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       return filteredWorkouts;
     }
   }

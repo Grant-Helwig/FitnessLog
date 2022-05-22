@@ -21,22 +21,26 @@ class WorkoutBloc {
     _workoutController.sink.add(await repo.readAllWorkoutsByName(workoutName));
   }
 
-  addWorkout(Workout workout) async {
+  getWorkoutsConditional({String? workoutName}) async {
+    if(workoutName != null){
+      getWorkoutsByName(workoutName);
+    } else {
+      getWorkouts();
+    }
+  }
+
+  addWorkout({required Workout workout, String? workoutName}) async {
     await repo.saveWorkout(workout);
-    getWorkouts();
+    getWorkoutsConditional(workoutName: workoutName);
   }
 
-  updateWorkout(Workout workout) async {
+  updateWorkout({required Workout workout, String? workoutName}) async {
     await repo.updateWorkout(workout);
-    getWorkouts();
+    getWorkoutsConditional(workoutName: workoutName);
   }
 
-  deleteWorkout(Workout workout) async {
+  deleteWorkout({required Workout workout, String? workoutName}) async {
     await repo.deleteWorkout(workout.id);
-    getWorkouts();
-  }
-
-  Future<bool> workoutNameExists(String workoutName) async{
-    return repo.workoutNameExists(workoutName);
+    getWorkoutsConditional(workoutName: workoutName);
   }
 }

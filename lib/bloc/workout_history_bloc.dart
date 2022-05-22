@@ -1,5 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:hey_workout/repository/workout_repository.dart';
 import 'dart:async';
+import '../model/routine.dart';
+import '../model/workout.dart';
 import '../model/workout_history.dart';
 
 class WorkoutHistoryBloc {
@@ -9,7 +12,7 @@ class WorkoutHistoryBloc {
 
   get workoutHistory => _workoutHistoryController.stream;
 
-  WorkoutBloc() {
+  WorkoutHistoryBloc() {
     getWorkoutHistory();
   }
 
@@ -17,18 +20,43 @@ class WorkoutHistoryBloc {
     _workoutHistoryController.sink.add(await repo.readAllWorkoutHistory());
   }
 
-  addWorkout(WorkoutHistory workoutHistory) async {
+  getWorkoutHistoryByDates(DateTimeRange range) async {
+    _workoutHistoryController.sink.add(await repo.workoutHistoryByDates(range));
+  }
+
+  getWorkoutHistoryByRoutineAndDates(Routine routine, DateTimeRange range) async {
+    _workoutHistoryController.sink.add(await repo.workoutHistoryByRoutineAndDates(routine.id, range));
+  }
+
+  getWorkoutHistoryByWorkoutAndDates(Workout workout, DateTimeRange range) async {
+    _workoutHistoryController.sink.add(await repo.workoutHistoryByWorkoutAndDates(workout.id, range));
+  }
+
+  getWorkoutHistoryConditional({Routine? routine, DateTimeRange? range}) async {
+    //if we have a range use range, if we have a routine use that too
+    if(range != null){
+      if(routine != null){
+        getWorkoutHistoryByRoutineAndDates(routine, range);
+      } else {
+        getWorkoutHistoryByDates(range);
+      }
+    } else {
+      getWorkoutHistory();
+    }
+  }
+
+  addWorkout({required WorkoutHistory workoutHistory, Routine? routine, DateTimeRange? range}) async {
     await repo.saveWorkoutHistory(workoutHistory);
-    getWorkoutHistory();
+    getWorkoutHistoryConditional(routine: routine,range: range);
   }
 
-  updateWorkout(WorkoutHistory workoutHistory) async {
+  updateWorkout({required WorkoutHistory workoutHistory, Routine? routine, DateTimeRange? range}) async {
     await repo.updateWorkoutHistory(workoutHistory);
-    getWorkoutHistory();
+    getWorkoutHistoryConditional(routine: routine,range: range);
   }
 
-  deleteWorkout(WorkoutHistory workoutHistory) async {
+  deleteWorkout({required WorkoutHistory workoutHistory, Routine? routine, DateTimeRange? range}) async {
     await repo.deleteWorkoutHistory(workoutHistory.id);
-    getWorkoutHistory();
+    getWorkoutHistoryConditional(routine: routine,range: range);
   }
 }
