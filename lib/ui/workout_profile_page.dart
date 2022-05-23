@@ -1,16 +1,13 @@
-import 'package:flutter_picker/flutter_picker.dart';
+import 'package:hey_workout/repository/workout_repository.dart';
+import 'package:hey_workout/ui/workout_history_page.dart';
 import 'package:unicons/unicons.dart';
-import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:developer';
-import 'package:modal_progress_hud/modal_progress_hud.dart';
-import 'package:draw_graph/draw_graph.dart';
-import 'package:draw_graph/models/feature.dart';
-
 import '../model/workout.dart';
 import '../model/workout_history.dart';
+import '../utils/utils.dart';
 
 class WorkoutProfile extends StatefulWidget {
   final Workout workout;
@@ -23,6 +20,7 @@ class WorkoutProfile extends StatefulWidget {
 
 class _WorkoutProfileState extends State<WorkoutProfile> {
   late Workout workout;
+  final WorkoutRepository repo = WorkoutRepository();
   _WorkoutProfileState({required this.workout});
 
   Future<void> exitWorkoutAlert() {
@@ -74,7 +72,7 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
     bool setDefault = true;
     //use similar logic to workout history page to validate the card and display the fields
     Future<WorkoutHistory?> recentHistory =
-    _mostRecentWorkoutHistoryByWorkout(workout.id);
+    repo.mostRecentWorkoutHistoryByWorkout(workout.id);
     return WillPopScope(
       onWillPop: () async {
         if(cardCompleted){
@@ -161,10 +159,6 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                   return SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
                     child: Card(
-                        shape: RoundedRectangleBorder(
-                          side: BorderSide(color: getWorkoutColor(WorkoutType.values[workout.type]), width: 2),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           child: Form(
@@ -348,7 +342,7 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                         hintText: "Duration", labelText: "Duration"),
                                     onTap: () async{
                                       log("current timer${timerController.text}");
-                                      Duration? curTimer = parseDuration(timerController.text); //double.tryParse(timerController.text);
+                                      Duration? curTimer = Utils().parseDuration(timerController.text); //double.tryParse(timerController.text);
 
                                       Duration? duration;
                                       if(curTimer != null){
@@ -357,14 +351,14 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                         //     durationPickerMode: DurationPickerMode.Hour
                                         //);
                                         log("current timer${timerController.text}");
-                                        duration = await selectDuration(context, curTimer);
+                                        duration = await Utils().selectDuration(context, curTimer);
                                       } else {
                                         // duration = await showDurationPicker(context: context,
                                         //     initialDuration: const Duration(microseconds: 0),
                                         //     durationPickerMode: DurationPickerMode.Hour
                                         //);
                                         log("current timer is null");
-                                        duration = await selectDuration(context,const Duration(microseconds: 0));
+                                        duration = await Utils().selectDuration(context,const Duration(microseconds: 0));
                                       }
                                       log("saved duration ${duration.inSeconds.toString()}");
 
@@ -505,30 +499,32 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
                                       TextButton(
                                         onPressed: () {
                                           if (_formKey.currentState!.validate()) {
-                                            _saveWorkoutHistory(
-                                                workout.name,
-                                                workout.type,
-                                                DateTime.now(),
-                                                int.parse(setController.text.isEmpty
-                                                    ? "0"
-                                                    : setController.text),
-                                                int.parse(repController.text.isEmpty
-                                                    ? "0"
-                                                    : repController.text),
-                                                double.parse(weightController.text.isEmpty
-                                                    ? "0"
-                                                    : weightController.text),
-                                                timerController.text,
-                                                double.parse(distanceController.text.isEmpty
-                                                    ? "0"
-                                                    : distanceController.text),
-                                                double.parse(caloriesController.text.isEmpty
-                                                    ? "0"
-                                                    : caloriesController.text),
-                                                double.parse(heartRateController.text.isEmpty
-                                                    ? "0"
-                                                    : heartRateController.text),
-                                                workout.id);
+                                            WorkoutHistory history = WorkoutHistory();
+                                            history.workoutName =workout.name;
+                                            history.workoutType = workout.type;
+                                            history.date = DateTime.now().toString();
+                                            history.sets =int.parse(setController.text.isEmpty
+                                            ? "0"
+                                                : setController.text);
+                                            history.reps = int.parse(repController.text.isEmpty
+                                            ? "0"
+                                                : repController.text);
+                                            history.weight = double.parse(weightController.text.isEmpty
+                                            ? "0"
+                                                : weightController.text);
+                                            history.duration = timerController.text;
+                                            history.distance = double.parse(distanceController.text.isEmpty
+                                            ? "0"
+                                                : distanceController.text);
+                                            history.calories = double.parse(caloriesController.text.isEmpty
+                                            ? "0"
+                                                : caloriesController.text);
+                                            history.heartRate =double.parse(heartRateController.text.isEmpty
+                                            ? "0"
+                                                : heartRateController.text);
+                                            history.workoutId = workout.id;
+                                            repo.saveWorkoutHistory(history);
+
 
                                             setState(() {
                                               cardCompleted= true;
@@ -552,7 +548,7 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
     );
   }
 
-  DateTimeRange dateTimeRange = weekRange();
+  DateTimeRange dateTimeRange = Utils().weekRange();
   @override
   Widget build(BuildContext context) {
     log("current workout is ${workout.name}");
@@ -609,7 +605,8 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
           children: <Widget>[
             //use same workout history page but with context this time
             WorkoutHistoryPage(workout: workout),
-            WorkoutGraphs(workout: workout)
+            WorkoutHistoryPage(workout: workout),
+            //WorkoutGraphs(workout: workout)
           ],
         ),
       ),

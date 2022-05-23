@@ -15,8 +15,16 @@ class RoutineBloc {
 
   Stream<Routine?> get activeRoutine => _activeRoutineController.stream;
 
-  RoutineBloc({Routine? routine}) {
-    getRoutines();
+  RoutineBloc({Routine? routine, bool? isDropdown}) {
+    if(isDropdown != null){
+      if(isDropdown){
+        getRoutinesForDropdown();
+      } else {
+        getRoutines();
+      }
+    } else {
+      getRoutines();
+    }
     setActiveRoutine(routine: routine);
   }
 
@@ -43,7 +51,7 @@ class RoutineBloc {
     getRoutines();
   }
 
-  setActiveRoutine({Routine? routine}){
+  setActiveRoutine({Routine? routine}) async{
     _activeRoutineController.sink.add(routine);
   }
 }

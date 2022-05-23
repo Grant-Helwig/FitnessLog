@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:hey_workout/ui/workout_profile_page.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:unicons/unicons.dart';
 
@@ -372,11 +373,11 @@ class _WorkoutPageState extends State<WorkoutPage> {
         child: ListTile(
           //navigate to profile on tap
           onTap: () async {
-            // Navigator.push(
-            //     context,
-            //     MaterialPageRoute(
-            //         builder: (context) =>
-            //             WorkoutProfile(workout: workouts![index])));
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) =>
+                        WorkoutProfile(workout: workouts![index])));
           },
           onLongPress: () async {
             return updateOptions(workouts[index]);
