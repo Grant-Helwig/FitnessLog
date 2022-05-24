@@ -1,4 +1,5 @@
 import 'package:hey_workout/repository/workout_repository.dart';
+import 'package:hey_workout/ui/workout_graph_page.dart';
 import 'package:hey_workout/ui/workout_history_page.dart';
 import 'package:unicons/unicons.dart';
 import 'dart:async';
@@ -604,9 +605,19 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
         body: TabBarView(
           children: <Widget>[
             //use same workout history page but with context this time
-            WorkoutHistoryPage(workout: workout),
-            WorkoutHistoryPage(workout: workout),
-            //WorkoutGraphs(workout: workout)
+            WorkoutHistoryPage(refreshCallback: (DateTimeRange result) {
+              dateTimeRange = result;
+              setState(() {});
+            },
+              initialDateRange: dateTimeRange,
+              workout: workout,
+            ),
+            WorkoutGraphs(refreshCallback: (DateTimeRange result) {
+              dateTimeRange = result;
+              setState(() {});
+            },
+                initialDateRange: dateTimeRange,
+                workout: workout)
           ],
         ),
       ),

@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../model/routine.dart';
 import '../model/routine_entry.dart';
+import '../model/weight.dart';
 import '../model/workout.dart';
 import '../model/workout_history.dart';
 
@@ -33,6 +34,8 @@ const String tableRoutine = 'Routine';
 const String tableRoutineEntry = "RoutineEntry";
 const String columnRoutineId = 'routineId';
 const String columnOrder = "entryOrder";
+//weight table
+const String tableWeight = 'Weight';
 
 class DatabaseHelper {
   // This is the actual database filename that is saved in the docs directory.
@@ -125,9 +128,65 @@ class DatabaseHelper {
                 FOREIGN KEY($columnRoutineId) REFERENCES $tableRoutine($columnId)
               )
               ''');
+
+    await db.execute('''
+              CREATE TABLE $tableWeight (
+                $columnId INTEGER PRIMARY KEY,
+                $columnWeight DOUBLE NOT NULL,
+                $columnDate TEXT NOT NULL
+              )
+              ''');
   }
 
   // Database helper methods
+
+  Future<int> insertWeight(Weight weight) async {
+    Database? db = await database;
+    int id = await db!.insert(tableWeight, weight.toMap());
+    return id;
+  }
+
+  Future<Weight?> queryWeight(int id) async {
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableWeight,
+        columns: [
+          columnId,
+          columnWeight,
+          columnDate
+        ],
+        where: '$columnId = ?',
+        whereArgs: [id]);
+    if (maps.isNotEmpty) {
+      return Weight.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<List<Weight>?> queryAllWeights() async {
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableWeight);
+    if (maps.isNotEmpty) {
+      List<Weight> weights = [];
+      maps.forEach((map) => weights.add(Weight.fromMap(map)));
+      return weights;
+    }
+    return null;
+  }
+
+  Future<int> deleteWeight(int id) async {
+    Database? db = await database;
+    return await db!
+        .delete(tableWeight, where: '$columnId = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateWeight(Weight weight) async {
+    Database? db = await database;
+    return await db!.update(tableWeight, weight.toMap(),
+        where: '$columnId = ?', whereArgs: [weight.id]);
+  }
+
+  /////
+
   Future<int> insertWorkoutHistory(WorkoutHistory workoutHistory) async {
     Database? db = await database;
     int id = await db!.insert(tableWorkoutHistory, workoutHistory.toMap());

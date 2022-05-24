@@ -15,6 +15,7 @@ class WorkoutBloc {
 
   WorkoutBloc({Workout? workout}) {
     getWorkouts();
+
     setActiveWorkout(workout: workout);
   }
 

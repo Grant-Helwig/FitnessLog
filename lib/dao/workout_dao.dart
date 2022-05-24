@@ -5,6 +5,7 @@ import 'dart:developer';
 import '../database/workout_database.dart';
 import '../model/routine.dart';
 import '../model/routine_entry.dart';
+import '../model/weight.dart';
 import '../model/workout.dart';
 import '../model/workout_history.dart';
 
@@ -436,6 +437,65 @@ class WorkoutDao {
         log('update row $id');
       }
       return entries;
+    }
+  }
+
+  saveWeight(Weight weight) async {
+
+    int id = await dbHelper.insertWeight(weight);
+    weight.id = id;
+
+    log('inserted row: $id');
+  }
+
+  deleteWeight(int _id) async {
+
+
+    int id = await dbHelper.deleteWeight(_id);
+
+    log('deleted row: $id');
+  }
+
+  updateWeight(Weight weight) async {
+
+    log('updating row: ${weight.id.toString()}');
+    int id = await dbHelper.updateWeight(weight);
+
+    log('updated row: $id');
+  }
+
+  Future<List<Weight>?> readAllWeights() async {
+
+    List<Weight>? weights = await dbHelper.queryAllWeights();
+    if (weights == null) {
+      log('read row empty');
+      return null;
+    } else {
+      weights.sort((a, b) => a.date.compareTo(b.date));
+      return weights;
+    }
+  }
+
+  Future<List<Weight>?> weightsByDates(
+      DateTimeRange range) async {
+
+    List<Weight>? weights = await dbHelper.queryAllWeights();
+    if (weights == null) {
+      return null;
+    } else {
+      List<Weight>? weightsInRange = [];
+      for (var value in weights) {
+        DateTime curDay = DateTime.parse(value.date);
+        if (range.start.isBefore(curDay) && range.end.isAfter(curDay) ||
+            datesEqual(range.start, curDay) ||
+            datesEqual(range.end, curDay)) {
+          weightsInRange.add(value);
+        }
+      }
+      weightsInRange.sort((a, b) {
+        return b.date.compareTo(a.date);
+      });
+      return weightsInRange;
     }
   }
 

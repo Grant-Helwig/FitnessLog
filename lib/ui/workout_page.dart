@@ -10,6 +10,7 @@ import '../model/routine_entry.dart';
 import '../model/workout.dart';
 import '../model/workout_history.dart';
 import '../repository/workout_repository.dart';
+import '../utils/utils.dart';
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({Key? key}) : super(key: key);
@@ -20,11 +21,14 @@ class WorkoutPage extends StatefulWidget {
 class _WorkoutPageState extends State<WorkoutPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final WorkoutBloc workoutBloc = WorkoutBloc();
+  WorkoutRepository repo = WorkoutRepository();
+  late Future<List<Workout>?> workouts;
 
-  final repo = WorkoutRepository();
-
-  //Future<List<Workout>?> workouts = _readAllWorkouts();
+  @override
+  void initState() {
+    super.initState();
+    workouts = repo.readAllWorkouts();
+  }
 
   //needed for name duplicate validation
   bool inAsyncCall = false;
@@ -40,7 +44,53 @@ class _WorkoutPageState extends State<WorkoutPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: getWorkoutsWidget()
+            child: FutureBuilder<List<Workout>?>(
+              future: workouts,
+              builder: (context, projectSnap) {
+                if (projectSnap.hasData) {
+                  return Column(children: [
+                    //search bar to filter list by name
+                    TextField(
+                      controller: searchController,
+                      decoration: const InputDecoration(
+                        labelText: "Search",
+                        hintText: "Workout Name",
+                        prefixIcon: Icon(UniconsLine.search),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                      ),
+                      onChanged: (value) async {
+                        setState(() {
+                          workouts = repo.readAllWorkoutsByName(value.toLowerCase());
+                        });
+                      },
+                    ),
+
+                    //list of workouts
+                    Expanded(
+                      child: ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 100),
+                          itemCount: projectSnap.data?.length,
+                          itemBuilder: (BuildContext context, int index) =>
+                              buildWorkoutCard(
+                                  context, index, projectSnap.data)),
+                    ),
+                  ]);
+                } else {
+                  return const Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'No Workouts',
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+              },
+            ),
           )
         ],
       ),
@@ -59,57 +109,6 @@ class _WorkoutPageState extends State<WorkoutPage> {
     );
   }
 
-  Widget getWorkoutsWidget(){
-    return StreamBuilder(
-        stream: workoutBloc.workouts,
-        builder:  (BuildContext context, AsyncSnapshot<List<Workout>?> snapshot) {
-          return getWorkoutCardWidget(snapshot);
-        },
-    );
-  }
-
-  Widget getWorkoutCardWidget(AsyncSnapshot<List<Workout>?> snapshot){
-    if (snapshot.hasData) {
-      return Column(children: [
-        //search bar to filter list by name
-        TextField(
-          controller: searchController,
-          decoration: const InputDecoration(
-            labelText: "Search",
-            hintText: "Workout Name",
-            prefixIcon: Icon(UniconsLine.search),
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white),
-            ),
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white),
-            ),
-          ),
-          onChanged: (value) async {
-            workoutBloc.getWorkoutsByName(value.toLowerCase());
-          },
-        ),
-
-        //list of workouts
-        Expanded(
-          child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 100),
-              itemCount: snapshot.data?.length,
-              itemBuilder: (BuildContext context, int index) =>
-                  buildWorkoutCard(
-                      context, index, snapshot.data)),
-        ),
-      ]);
-    } else {
-      return const Align(
-        alignment: Alignment.center,
-        child: Text(
-          'No Workouts',
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
-  }
   //get string for validation message
   String? nameValidator(String? name) {
     if (name!.isEmpty) {
@@ -161,6 +160,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
                       //radio buttons to set workout type. Locked if updating
                       RadioListTile<int>(
+
                         value: WorkoutType.strength.index,
                         groupValue: typeIndexController,
                         title: const Text("Strength"),
@@ -172,7 +172,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                                 WorkoutType.strength.index;
                           });
                         },
-                        activeColor: Colors.green,
+                        activeColor: Colors.white,
                         toggleable: true,
                       ),
                       RadioListTile<int>(
@@ -187,7 +187,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                                 WorkoutType.cardio.index;
                           });
                         },
-                        activeColor: Colors.green,
+                        activeColor: Colors.white,
                         toggleable: true,
                       ),
                       RadioListTile<int>(
@@ -201,7 +201,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                             typeIndexController = WorkoutType.both.index;
                           });
                         },
-                        activeColor: Colors.green,
+                        activeColor: Colors.white,
                         toggleable: true,
                       ),
                     ],
@@ -228,8 +228,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         // dismiss keyboard during async call
                         FocusScope.of(context).requestFocus(new FocusNode());
 
-                        bool isDupe = await repo.workoutNameExists(workoutController.text);
-
+                        bool isDupe =
+                        await repo.workoutNameExists(workoutController.text);
 
                         //finish validation and exit async call
                         setNewState(() {
@@ -244,21 +244,18 @@ class _WorkoutPageState extends State<WorkoutPage> {
                           workout.name = workoutController.text;
                           workout.type = typeIndexController!;
                           if (!add) {
-                            //await repo.updateWorkout(workout);
-                            await workoutBloc.updateWorkout(workout: workout, workoutName: searchController.text.isEmpty ? null : searchController.text);
-                            await repo.updateWorkoutHistoryByWorkout(
+                            repo.updateWorkout(workout);
+                            repo.updateWorkoutHistoryByWorkout(
                                 workout.id, workoutController.text);
-                            await repo.updateRoutineEntryByWorkout(
+                            repo.updateRoutineEntryByWorkout(
                                 workout.id, workout.type, workoutController.text);
                           } else {
-                            //repo.saveWorkout(workout);
-                            workoutBloc.addWorkout(workout: workout, workoutName: searchController.text.isEmpty ? null : searchController.text);
+                            repo.saveWorkout(workout);
                           }
-                          // if(searchController.text.isNotEmpty){
-                          //   workoutBloc.getWorkoutsByName(searchController.text.toLowerCase());
-                          // } else {
-                          //   workoutBloc.getWorkouts();
-                          // }
+                          setState(() {
+                            workouts = repo.readAllWorkouts();
+                          });
+
                           Navigator.of(context).pop();
                         }
                       }
@@ -339,13 +336,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
                     List<RoutineEntry>? routineEntriesForWorkout =
                     await repo.routineEntryByWorkout(workout.id);
                     if (historyForWorkout == null && routineEntriesForWorkout == null) {
-                      await workoutBloc.deleteWorkout(workout: workout);
+                      await repo.deleteWorkout(workout.id);
                     } else {
                       return cantDeleteAlert();
                     }
-                    // setState(() {
-                    //   workouts = _readAllWorkouts();
-                    // });
+                    setState(() {
+                      workouts = repo.readAllWorkouts();
+                    });
                   },
                 ),
                 const Divider(),
@@ -370,6 +367,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
       margin: const EdgeInsets.all(0),
       //height: 42,
       child: Card(
+        // shape: RoundedRectangleBorder(
+        //   side: BorderSide(color: getWorkoutColor(WorkoutType.values[workouts![index].type]), width: 2),
+        //   borderRadius: BorderRadius.circular(15),
+        // ),
         child: ListTile(
           //navigate to profile on tap
           onTap: () async {

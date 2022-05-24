@@ -1,8 +1,12 @@
 
 import 'package:flutter/material.dart';
+import 'package:hey_workout/ui/routine_page.dart';
+import 'package:hey_workout/ui/weight_profile_page.dart';
 import 'package:hey_workout/ui/workout_history_page.dart';
 import 'package:hey_workout/ui/workout_page.dart';
 import 'package:unicons/unicons.dart';
+
+import '../utils/utils.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
@@ -12,6 +16,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  DateTimeRange dateTimeRange = Utils().weekRange();
   //main page that has 3 tabs
   @override
   Widget build(BuildContext context) {
@@ -32,7 +37,11 @@ class _MyHomePageState extends State<MyHomePage> {
             IconButton(
               icon: const Icon(UniconsLine.weight),
               onPressed: () async {
-                await weightAlert();
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const WeightProfile()));
               },
             ),
           ],
@@ -78,14 +87,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 )
               ]),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: <Widget>[
             //Null workout object because we are viewing history for all workouts
-            WorkoutHistoryPage(workout: null),
-            //WorkoutPage(),
+            WorkoutHistoryPage(refreshCallback: (DateTimeRange result) {
+              dateTimeRange = result;
+              setState(() {});
+            },
+                initialDateRange: dateTimeRange,
+                workout: null),
             WorkoutPage(),
-            WorkoutPage()
-           // RoutinePage()
+            RoutinePage()
           ],
         ),
       ),

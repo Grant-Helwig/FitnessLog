@@ -3,6 +3,7 @@ import 'package:hey_workout/dao/workout_dao.dart';
 
 import '../model/routine.dart';
 import '../model/routine_entry.dart';
+import '../model/weight.dart';
 import '../model/workout.dart';
 import '../model/workout_history.dart';
 
@@ -48,4 +49,10 @@ class WorkoutRepository {
   Future<List<RoutineEntry>?> routineEntryByWorkout (int _id) => workoutDao.routineEntryByWorkout(_id);
   Future<List<RoutineEntry>?> updateRoutineEntryByWorkout(int _id, int workoutType, String workoutName)
     => workoutDao.updateRoutineEntryByWorkout(_id, workoutType, workoutName);
+
+  Future saveWeight (Weight weight) => workoutDao.saveWeight(weight);
+  Future deleteWeight (int _id) => workoutDao.deleteWeight(_id);
+  Future updateWeight (Weight weight) => workoutDao.updateWeight(weight);
+  Future<List<Weight>?> readAllWeights() => workoutDao.readAllWeights();
+  Future<List<Weight>?> readAllWeightsByDate(DateTimeRange range) => workoutDao.weightsByDates(range);
 }
