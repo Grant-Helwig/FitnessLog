@@ -242,7 +242,7 @@ class WorkoutDao {
   }
 
   saveWorkoutHistory(WorkoutHistory workoutHistory) async {
-
+    log(workoutHistory.workoutId.toString());
     int id = await dbHelper.insertWorkoutHistory(workoutHistory);
     workoutHistory.id = id;
 

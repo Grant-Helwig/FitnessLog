@@ -1,234 +1,48 @@
-
-
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hey_workout/repository/workout_repository.dart';
-import 'package:hey_workout/ui/execute_workout_page.dart';
-import 'package:unicons/unicons.dart';
 
 import '../model/routine.dart';
-import '../model/routine_entry.dart';
 import '../model/workout.dart';
 import '../model/workout_history.dart';
 import '../utils/utils.dart';
 
-class RoutineProfile extends StatefulWidget {
-  final Routine routine;
-  const RoutineProfile({Key? key, required this.routine}) : super(key: key);
+class ExecuteWorkout extends StatefulWidget {
+  final Routine? routine;
+  final WorkoutHistory? history;
+  final List<Workout>? workouts;
+  const ExecuteWorkout({Key? key, required this.workouts, this.routine, this.history}) : super(key: key);
 
   @override
-  State<RoutineProfile> createState() =>
-      _RoutineProfileState(routine: this.routine);
+  State<ExecuteWorkout> createState() =>
+      _ExecuteWorkoutState(workouts: this.workouts, routine: this.routine, history: this.history);
 }
 
-class _RoutineProfileState extends State<RoutineProfile> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  late Routine routine;
-  _RoutineProfileState({required this.routine});
+class _ExecuteWorkoutState extends State<ExecuteWorkout> {
 
   WorkoutRepository repo = WorkoutRepository();
-
   //need multiple forms to validate each workout separately
   List<GlobalKey<FormState>> formKeys = [];
 
   //used to hide the fields when each card is done
   List<bool> cardsCompleted = [];
 
-  late Future<List<Workout>?> workouts;
+  late List<Workout>? workouts;
 
-  Widget orderedWorkoutList() {
-    Future<List<RoutineEntry>?> routineEntries =
-      repo.routineEntryByRoutine(routine.id);
-    return Scaffold(
-      body: FutureBuilder<List<RoutineEntry>?>(
-          future: routineEntries,
-          builder: (context, AsyncSnapshot<List<RoutineEntry>?> snapshot) {
-            if (snapshot.hasData) {
-              return ReorderableListView(
-                children: <Widget>[
-                  for (int index = 0; index < snapshot.data!.length; index += 1)
-                  //swipe to delete routine entries
-                    Dismissible(
-                      key: UniqueKey(),
-                      background: Container(color: Colors.redAccent),
-                      onDismissed: (direction) {
-                        setState(() {
-                          final RoutineEntry item =
-                          snapshot.data!.removeAt(index);
-                          repo.deleteRoutineEntry(item.id);
-                          for (var element in snapshot.data!) {
-                            element.order = snapshot.data!.indexOf(element);
-                            repo.updateRoutineEntry(element);
-                          }
-                          routineEntries = repo.routineEntryByRoutine(routine.id);
-                        });
-                      },
-                      child: Card(
-                        child: ListTile(
-                          trailing: const Icon(UniconsLine.draggabledots),
-                          tileColor: Colors.black12,
-                          title: Text('${snapshot.data![index].workoutName}'),
-                        ),
-                      ),
-                    ),
-                ],
+  late Routine? routine;
+  late WorkoutHistory? history;
+  _ExecuteWorkoutState({required this.workouts, this.routine, this.history});
 
-                //on reordering the list, save the index valiues and update the list view
-                onReorder: (int oldIndex, int newIndex) {
-                  setState(() {
-                    if (oldIndex < newIndex) {
-                      newIndex -= 1;
-                    }
-                    final RoutineEntry item = snapshot.data!.removeAt(oldIndex);
-                    snapshot.data!.insert(newIndex, item);
-
-                    for (var element in snapshot.data!) {
-                      element.order = snapshot.data!.indexOf(element);
-                        repo.updateRoutineEntry(element);
-                    }
-                  });
-                },
-              );
-            } else {
-              return const Align(
-                alignment: Alignment.center,
-                child: Text(
-                  'No Workouts for this Routine',
-                  textAlign: TextAlign.center,
-                ),
-              );
-            }
-          }),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await addWorkoutEntryForm(context);
-        },
-        tooltip: 'Add Workout',
-        child: const Icon(Icons.add),
-        backgroundColor: Colors.white,
-      ),
-    );
+  @override
+  Widget build(BuildContext context) {
+    return executeWorkout(context);
   }
 
-  Future<void> noWorkoutsAlert() {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('No Workouts'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: const <Widget>[
-                Text('No workouts have been added.'),
-                Text('Please add workouts before building Routines.'),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
 
-  Future<void> addWorkoutEntryForm(BuildContext context) async {
-    List<Workout>? workouts = await repo.readAllWorkouts();
-    if (workouts == null) {
-      return noWorkoutsAlert();
-    }
-
-    Workout workout = workouts[0];
-
-    return await showDialog(
-      context: context,
-      builder: (context) {
-        return SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: AlertDialog(
-            scrollable: true,
-            content: StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-                  return Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        DropdownButton<Workout>(
-                          isExpanded: true,
-                          value: workout,
-                          icon: const Icon(UniconsLine.angle_down),
-                          elevation: 16,
-                          style: const TextStyle(color: Colors.white),
-                          underline: Container(
-                            height: 2,
-                            color: Colors.white,
-                          ),
-                          onChanged: (Workout? newValue) async {
-                            setState(() {
-                              workout = newValue!;
-                            });
-                          },
-                          items: workouts
-                              .map<DropdownMenuItem<Workout>>((Workout value) {
-                            return DropdownMenuItem<Workout>(
-                              value: value,
-                              child: Text(value.name),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () async {
-                  //when saving, need to set the order field correctly
-                  if (_formKey.currentState!.validate()) {
-                    var entries = await repo.routineEntryByRoutine(routine.id);
-                    RoutineEntry entry = RoutineEntry();
-                    entry.workoutType = workout.type;
-                    entry.workoutName = workout.name;
-                    entry.workoutId = workout.id;
-                    entry.routineId = routine.id;
-                    if (entries == null) {
-                      entry.order = 0;
-                      repo.saveRoutineEntry(entry);
-                    } else {
-                      entry.order = entries.length;
-                      repo.saveRoutineEntry(entry);
-                    }
-                    setState(() {});
-                    Navigator.of(context).pop();
-                  }
-                },
-                child: const Text("Save"),
-              )
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget executeWorkoutEntries(BuildContext context) {
-    workouts = repo.readAllWorkoutsByRoutine(routine.id);
+  Widget executeWorkout(BuildContext context) {
+    //workouts = repo.readAllWorkoutsByRoutine(routine.id);
     formKeys = [];
     cardsCompleted = [];
 
@@ -271,7 +85,7 @@ class _RoutineProfileState extends State<RoutineProfile> {
         appBar: AppBar(
           centerTitle: true,
           title: Text(
-            routine.name,
+            routine == null ? workouts![0].name : routine!.name,
             textAlign: TextAlign.center,
           ),
         ),
@@ -279,31 +93,26 @@ class _RoutineProfileState extends State<RoutineProfile> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: FutureBuilder<List<Workout>?>(
-                future: workouts,
-                builder: (context, projectSnap) {
-                  if (projectSnap.hasData) {
-                    for (int i = 0; i < projectSnap.data!.length; i++) {
-                      formKeys.add(GlobalKey<FormState>());
-                      cardsCompleted.add(false);
-                    }
-                    return ListView.builder(
+              child: ListView.builder(
                         padding: const EdgeInsets.only(bottom: 10, top: 10),
-                        itemCount: projectSnap.data?.length,
-                        itemBuilder: (BuildContext context, int index) =>
-                            executeWorkoutCard(projectSnap.data![index], index));
-                  } else {
-                    return const Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        'No Workouts for this Routine',
-                        textAlign: TextAlign.center,
-                      ),
-                    );
-                  }
-                },
+                        itemCount: workouts == null? 0 : workouts!.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          if(workouts != null) {
+                            formKeys.add(GlobalKey<FormState>());
+                            cardsCompleted.add(false);
+                            return executeWorkoutCard(workouts![index], index);
+                          } else {
+                            return const Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'No Workout(s)',
+                                textAlign: TextAlign.center,
+                              ),
+                            );
+                          }
+                        }
+                        )
               ),
-            )
           ],
         ),
       ),
@@ -321,7 +130,15 @@ class _RoutineProfileState extends State<RoutineProfile> {
     bool hasDefault = true;
     //use similar logic to workout history page to validate the card and display the fields
     Future<WorkoutHistory?> recentHistory =
-      repo.mostRecentWorkoutHistoryByWorkout(workout.id);
+    repo.mostRecentWorkoutHistoryByWorkout(workout.id);
+
+    if(history != null){
+        recentHistory =   Future.value(history);
+    } else {
+      recentHistory =
+          repo.mostRecentWorkoutHistoryByWorkout(workout.id);
+    }
+
     return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
           return FutureBuilder<WorkoutHistory?>(
@@ -679,34 +496,42 @@ class _RoutineProfileState extends State<RoutineProfile> {
                                       WorkoutHistory tempWorkoutHistory = WorkoutHistory();
                                       tempWorkoutHistory.workoutName = workout.name;
                                       tempWorkoutHistory.workoutType = workout.type;
+                                      tempWorkoutHistory.workoutId = workout.id;
                                       tempWorkoutHistory.date = DateTime.now().toString();
                                       tempWorkoutHistory.sets = int.parse(setController.text.isEmpty
                                           ? "0"
-                                              : setController.text);
+                                          : setController.text);
                                       tempWorkoutHistory.reps = int.parse(repController.text.isEmpty
                                           ? "0"
-                                              : repController.text);
+                                          : repController.text);
                                       tempWorkoutHistory.weight = double.parse(weightController.text.isEmpty
                                           ? "0"
-                                              : weightController.text);
+                                          : weightController.text);
                                       tempWorkoutHistory.duration = timerController.text;
                                       tempWorkoutHistory.distance = double.parse(distanceController.text.isEmpty
                                           ? "0"
-                                              : distanceController.text);
+                                          : distanceController.text);
                                       tempWorkoutHistory.calories = double.parse(caloriesController.text.isEmpty
                                           ? "0"
-                                              : caloriesController.text);
+                                          : caloriesController.text);
                                       tempWorkoutHistory.heartRate = double.parse(heartRateController.text.isEmpty
                                           ? "0"
-                                              : heartRateController.text);
-                                      repo.saveWorkoutHistory(tempWorkoutHistory);
+                                          : heartRateController.text);
+                                      if(history != null){
+                                        repo.updateWorkoutHistory(tempWorkoutHistory);
+                                      } else {
+                                        repo.saveWorkoutHistory(tempWorkoutHistory);
+                                      }
 
-                                      var newRoutine = routine;
-                                      newRoutine.date = DateTime.now().toString();
-                                      repo.updateRoutine(newRoutine);
+                                      if(routine != null){
+                                        var newRoutine = routine!;
+                                        newRoutine.date = DateTime.now().toString();
+                                        repo.updateRoutine(newRoutine);
+                                      }
+
                                       setState(() {
                                         cardsCompleted[index] = true;
-                                        workouts = repo.readAllWorkoutsByRoutine(routine.id);
+                                        //workouts = repo.readAllWorkoutsByRoutine(routine.id);
                                       });
                                     }
                                   },
@@ -723,31 +548,5 @@ class _RoutineProfileState extends State<RoutineProfile> {
           );
         });
   }
-
-  //wrap it with an appbar
-  @override
-  Widget build(BuildContext context) {
-    log("current routine is ${routine.name}");
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          routine.name,
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          IconButton(
-              onPressed: () async {
-                var workouts_now = await repo.readAllWorkouts();
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => ExecuteWorkout(workouts: workouts_now, routine: routine,)));
-              },
-              icon: const Icon(UniconsLine.play))
-        ],
-      ),
-      body: orderedWorkoutList(),
-    );
-  }
 }
+
