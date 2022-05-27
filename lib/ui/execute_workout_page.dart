@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hey_workout/repository/workout_repository.dart';
+import 'package:intl/intl.dart';
 
 import '../model/routine.dart';
 import '../model/workout.dart';
@@ -127,6 +128,10 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
     TextEditingController distanceController = TextEditingController();
     TextEditingController caloriesController = TextEditingController();
     TextEditingController heartRateController = TextEditingController();
+
+    DateTime myDateTime = DateTime.now();
+    TextEditingController dateController = TextEditingController(text: DateFormat('yyyy/MM/dd').format(myDateTime));
+    TextEditingController timeController = TextEditingController(text: DateFormat('hh:mm a').format(myDateTime));
     bool hasDefault = true;
     //use similar logic to workout history page to validate the card and display the fields
     Future<WorkoutHistory?> recentHistory =
@@ -144,18 +149,37 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
           return FutureBuilder<WorkoutHistory?>(
             future: recentHistory,
             builder: (context, snapshot) {
-              if (snapshot.hasData && hasDefault) {
-                weightController = TextEditingController(text: snapshot.data!.weight == 0 ? null : snapshot.data!.weight.toString());
-                timerController = TextEditingController(
-                    text: snapshot.data!.duration == Duration().toString()
-                        ? null
-                        : snapshot.data!.duration);
-                distanceController = TextEditingController(text: snapshot.data!.distance == 0 ? null :snapshot.data!.distance.toString());
-                caloriesController = TextEditingController(text: snapshot.data!.calories == 0 ? null : snapshot.data!.calories.toString());
-                heartRateController = TextEditingController(text: snapshot.data!.heartRate == 0 ? null : snapshot.data!.heartRate.toString());
-                setController = TextEditingController(text: snapshot.data!.sets == 0 ? null : snapshot.data!.sets.toString());
-                repController = TextEditingController(text: snapshot.data!.reps == 0 ? null : snapshot.data!.reps.toString());
-                hasDefault = false;
+              if (snapshot.hasData ) {
+                if(hasDefault){
+                  weightController = TextEditingController(text: snapshot.data!.weight == 0 ? null : snapshot.data!.weight.toString());
+                  timerController = TextEditingController(
+                      text: snapshot.data!.duration == Duration().toString()
+                          ? null
+                          : snapshot.data!.duration);
+                  distanceController = TextEditingController(text: snapshot.data!.distance == 0 ? null :snapshot.data!.distance.toString());
+                  caloriesController = TextEditingController(text: snapshot.data!.calories == 0 ? null : snapshot.data!.calories.toString());
+                  heartRateController = TextEditingController(text: snapshot.data!.heartRate == 0 ? null : snapshot.data!.heartRate.toString());
+                  setController = TextEditingController(text: snapshot.data!.sets == 0 ? null : snapshot.data!.sets.toString());
+                  repController = TextEditingController(text: snapshot.data!.reps == 0 ? null : snapshot.data!.reps.toString());
+
+
+                  if(history != null){
+                    myDateTime = DateTime.parse(snapshot.data!.date);
+                    dateController = TextEditingController(
+                        text: DateFormat('yyyy/MM/dd').format(myDateTime));
+                    timeController = TextEditingController(
+                        text: DateFormat('hh:mm a').format(myDateTime));
+                  } else {
+                    myDateTime = DateTime.now();
+                    dateController = TextEditingController(
+                        text: DateFormat('yyyy/MM/dd').format(myDateTime));
+                    timeController = TextEditingController(
+                        text: DateFormat('hh:mm a').format(myDateTime));
+                  }
+
+                  hasDefault = false;
+                }
+
               }
               return Card(
                   child: Container(
@@ -487,6 +511,47 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                           ),
                           Visibility(
                             visible: !cardsCompleted[index],
+                            child: TextField(
+                              controller: dateController,
+                              readOnly: true,
+                              onTap: () async {
+                                DateTime now = DateTime.now();
+                                var dateTemp = (await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.parse(snapshot.data!.date),
+                                  firstDate: DateTime(now.year - 5, now.month, now.day),
+                                  lastDate: DateTime(now.year, now.month, now.day),
+                                ));
+                                if(dateTemp != null){
+                                  myDateTime = DateTime(dateTemp.year, dateTemp.month, dateTemp.day, myDateTime.hour, myDateTime.minute);
+                                  dateController.text =
+                                      DateFormat('yyyy/MM/dd').format(myDateTime);
+                                  setState(() {});
+                                }
+                              },
+                            ),
+                          ),
+                          Visibility(
+                            visible: !cardsCompleted[index],
+                            child: TextField(
+                              controller: timeController,
+                              readOnly: true,
+                              onTap: () async {
+                                var timeTemp = (await showTimePicker(
+                                    context: context,
+                                    initialTime:TimeOfDay.fromDateTime(DateTime.parse(snapshot.data!.date))
+                                ));
+                                if(timeTemp != null){
+                                  myDateTime = DateTime(myDateTime.year, myDateTime.month, myDateTime.day, timeTemp.hour, timeTemp.minute);
+                                  timeController.text =
+                                      DateFormat('hh:mm a').format(myDateTime);
+                                  setState(() {});
+                                }
+                              },
+                            ),
+                          ),
+                          Visibility(
+                            visible: !cardsCompleted[index],
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -497,7 +562,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                       tempWorkoutHistory.workoutName = workout.name;
                                       tempWorkoutHistory.workoutType = workout.type;
                                       tempWorkoutHistory.workoutId = workout.id;
-                                      tempWorkoutHistory.date = DateTime.now().toString();
+                                      tempWorkoutHistory.date = myDateTime.toString();
                                       tempWorkoutHistory.sets = int.parse(setController.text.isEmpty
                                           ? "0"
                                           : setController.text);
@@ -518,6 +583,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                           ? "0"
                                           : heartRateController.text);
                                       if(history != null){
+                                        tempWorkoutHistory.id = history!.id;
                                         repo.updateWorkoutHistory(tempWorkoutHistory);
                                       } else {
                                         repo.saveWorkoutHistory(tempWorkoutHistory);
@@ -544,6 +610,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                       ),
                     ),
                   ));
+
             },
           );
         });
