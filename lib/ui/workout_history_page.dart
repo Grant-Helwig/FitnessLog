@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:hey_workout/bloc/workout_bloc.dart';
 import 'package:hey_workout/bloc/workout_history_bloc.dart';
 import 'package:hey_workout/repository/workout_repository.dart';
+import 'package:hey_workout/ui/execute_workout_page.dart';
 import 'package:hey_workout/ui/workout_profile_page.dart';
 import 'package:intl/intl.dart';
 import 'package:unicons/unicons.dart';
@@ -289,7 +290,16 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                   child: const Text('Update'),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    await addWorkoutHistoryForm(context, false, workoutHistory, true);
+                    //await addWorkoutHistoryForm(context, false, workoutHistory, true);
+                    var workout = await repo.readWorkout(workoutHistory.workoutId);
+                    await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                ExecuteWorkout(workouts: [workout!], history: workoutHistory)));
+                    setState(() {
+                      _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
+                    });
                   },
                 ),
                 const Divider(),
@@ -393,7 +403,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     TextEditingController heartRateController = TextEditingController(
         text: workoutHistory.heartRate == 0 ? null : workoutHistory.heartRate.toString());
     DateTime myDateTime =
-    add ? DateTime.now() : DateTime.parse(workoutHistory.date);
+      add ? DateTime.now() : DateTime.parse(workoutHistory.date);
     TextEditingController dateController = TextEditingController(
         text: DateFormat('yyyy/MM/dd').format(myDateTime));
     TextEditingController timeController = TextEditingController(

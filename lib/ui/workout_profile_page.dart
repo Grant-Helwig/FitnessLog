@@ -1,4 +1,5 @@
 import 'package:hey_workout/repository/workout_repository.dart';
+import 'package:hey_workout/ui/execute_workout_page.dart';
 import 'package:hey_workout/ui/workout_graph_page.dart';
 import 'package:hey_workout/ui/workout_history_page.dart';
 import 'package:unicons/unicons.dart';
@@ -560,10 +561,11 @@ class _WorkoutProfileState extends State<WorkoutProfile> {
           actions: [
             IconButton(
                 onPressed: () async {
+                  
                   await Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => executeWorkoutCard()));
+                          builder: (context) => ExecuteWorkout(workouts: [workout])));
                   setState(() {
 
                   });
