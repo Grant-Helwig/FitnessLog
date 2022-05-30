@@ -259,12 +259,13 @@ class WorkoutDao {
     log('deleted row: $id');
   }
 
-  updateWorkoutHistory(WorkoutHistory workoutHistory) async {
+  Future<WorkoutHistory> updateWorkoutHistory(WorkoutHistory workoutHistory) async {
     
     log('updating row: ${workoutHistory.id.toString()}');
     int id = await dbHelper.updateWorkoutHistory(workoutHistory);
-
+    workoutHistory.id = id;
     log('updated row: $id');
+    return workoutHistory;
   }
 
   Future<List<WorkoutHistory>?> readAllWorkoutHistory() async {

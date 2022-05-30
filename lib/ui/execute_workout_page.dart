@@ -378,7 +378,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                                         keyboardType: TextInputType.number,
                                                         inputFormatters: <TextInputFormatter>[
                                                           FilteringTextInputFormatter.allow(
-                                                              RegExp(r'[0-9]')),
+                                                              RegExp(r'[0-9.]')),
                                                         ],
                                                       ),
                                                     ),
@@ -539,9 +539,6 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                       }
                                       if(workout.type == WorkoutType.both.index){
                                         if(timerController.text == "0:00:00" &&
-                                            weightController.text.isEmpty &&
-                                            setController.text.isEmpty &&
-                                            repController.text.isEmpty &&
                                             distanceController.text.isEmpty &&
                                             caloriesController.text.isEmpty &&
                                             heartRateController.text.isEmpty){
@@ -795,23 +792,28 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                       WorkoutHistory newHistory;
                                       if(history != null){
                                         tempWorkoutHistory.id = history!.id;
-                                        newHistory = await repo.updateWorkoutHistory(tempWorkoutHistory);
+                                        await repo.updateWorkoutHistory(tempWorkoutHistory);
+                                        newHistory = history!;
+                                        //List<WorkoutSet>? tempSets = await repo.readAllSets(history!.id);
+                                        //if(tempSets != null){
+                                          for(var set in history!.sets){
+                                            log("delete set id");
+                                            log(set.id.toString());
+                                            await repo.deleteSet(set.id);
+                                          }
+                                       // }
                                       } else {
                                         newHistory = await repo.saveWorkoutHistory(tempWorkoutHistory);
                                       }
 
                                       for(int i = 0; i < repControllers.length; i++){
                                         WorkoutSet temp = WorkoutSet();
-                                        temp.reps = int.parse(repControllers[i].text.isEmpty
-                                            ? "0"
-                                            : repControllers[i].text);
+                                        temp.reps = int.parse(repControllers[i].text.isEmpty ? "0" : repControllers[i].text);
                                         temp.weight = double.parse(weightControllers[i].text.isEmpty
                                             ? "0"
                                             : weightControllers[i].text);
                                         temp.set = i;
                                         temp.workoutHistoryId = newHistory.id;
-                                        log("new history id");
-                                        log(newHistory.id.toString());
                                         repo.saveSet(temp);
                                       }
 

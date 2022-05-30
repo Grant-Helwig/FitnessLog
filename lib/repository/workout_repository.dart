@@ -25,7 +25,7 @@ class WorkoutRepository {
 
   Future<WorkoutHistory> saveWorkoutHistory (WorkoutHistory workoutHistory) => workoutDao.saveWorkoutHistory(workoutHistory);
   Future deleteWorkoutHistory(int _id) => workoutDao.deleteWorkoutHistory(_id);
-  Future updateWorkoutHistory(WorkoutHistory workoutHistory) => workoutDao.updateWorkoutHistory(workoutHistory);
+  Future<WorkoutHistory> updateWorkoutHistory(WorkoutHistory workoutHistory) => workoutDao.updateWorkoutHistory(workoutHistory);
   Future<List<WorkoutHistory>?> readAllWorkoutHistory () => workoutDao.readAllWorkoutHistory();
   Future<List<WorkoutHistory>?> workoutHistoryByWorkout (int _id) => workoutDao.workoutHistoryByWorkout(_id);
   Future<WorkoutHistory?> mostRecentWorkoutHistoryByWorkout (int _id) => workoutDao.mostRecentWorkoutHistoryByWorkout(_id);
