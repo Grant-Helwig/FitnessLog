@@ -242,12 +242,13 @@ class WorkoutDao {
     }
   }
 
-  saveWorkoutHistory(WorkoutHistory workoutHistory) async {
+  Future<WorkoutHistory> saveWorkoutHistory(WorkoutHistory workoutHistory) async {
     log(workoutHistory.workoutId.toString());
     int id = await dbHelper.insertWorkoutHistory(workoutHistory);
     workoutHistory.id = id;
 
     log('inserted row: $id');
+    return workoutHistory;
   }
 
   deleteWorkoutHistory(int _id) async {
@@ -307,6 +308,7 @@ class WorkoutDao {
       workouts.sort((a, b) {
         return b.date.compareTo(a.date);
       });
+      workouts[0].sets = await readAllSets(workouts[0].id);
       return workouts[0];
     }
   }
@@ -327,6 +329,7 @@ class WorkoutDao {
         if (range.start.isBefore(curDay) && range.end.isAfter(curDay) ||
             datesEqual(range.start, curDay) ||
             datesEqual(range.end, curDay)) {
+          value.sets = await readAllSets(value.id);
           workoutsInRange.add(value);
         } else {
           log("skipped ${value.workoutName} from ${value.date}");
@@ -352,6 +355,7 @@ class WorkoutDao {
         if (range.start.isBefore(curDay) && range.end.isAfter(curDay) ||
             datesEqual(range.start, curDay) ||
             datesEqual(range.end, curDay)) {
+          value.sets = await readAllSets(value.id);
           workoutsInRange.add(value);
         }
       }
@@ -500,7 +504,7 @@ class WorkoutDao {
     }
   }
 
-  saveSet(Set set) async {
+  saveSet(WorkoutSet set) async {
 
     int id = await dbHelper.insertSet(set);
     set.id = id;
@@ -516,7 +520,7 @@ class WorkoutDao {
     log('deleted row: $id');
   }
 
-  updateSet(Set set) async {
+  updateSet(WorkoutSet set) async {
 
     log('updating row: ${set.id.toString()}');
     int id = await dbHelper.updateSet(set);
@@ -524,12 +528,12 @@ class WorkoutDao {
     log('updated row: $id');
   }
 
-  Future<List<Set>?> readAllSets(int _id) async {
+  Future<List<WorkoutSet>> readAllSets(int _id) async {
 
-    List<Set>? sets = await dbHelper.queryAllSetsByWorkoutHistory(_id);
+    List<WorkoutSet>? sets = await dbHelper.queryAllSetsByWorkoutHistory(_id);
     if (sets == null) {
       log('read row empty');
-      return null;
+      return [];
     } else {
       sets.sort((a, b) => a.set.compareTo(b.set));
       return sets;

@@ -2,28 +2,31 @@ import 'package:hey_workout/model/workout_history.dart';
 
 import '../database/workout_database.dart';
 
-class Set {
+class WorkoutSet {
   int id = -1;
   late int workoutHistoryId;
   //late WorkoutHistory? workoutHistory;
   late int reps;
+  late double weight;
   late int set;
 
-  Set();
+  WorkoutSet();
 
-  Set.fromMap(Map<dynamic, dynamic> map) {
+  WorkoutSet.fromMap(Map<dynamic, dynamic> map) {
     id = map[columnId];
-    //workoutHistoryId = map[columnWorkoutHistoryId];
+    workoutHistoryId = map[columnWorkoutHistoryId];
     reps = map[columnReps];
-    set = map[columnSet];
+    weight = map[columnWeight];
+    set = map[columnSetOrder];
   }
 
   // convenience method to create a Map from this object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
-      //columnWorkoutHistoryId: workoutHistoryId,
+      columnWorkoutHistoryId: workoutHistoryId,
       columnReps: reps,
-      columnSet: set,
+      columnWeight: weight,
+      columnSetOrder: set,
     };
     if (id != -1) {
       map[columnId] = id;

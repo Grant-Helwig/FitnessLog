@@ -23,7 +23,7 @@ class WorkoutRepository {
   Future<List<Workout>?> readAllWorkoutsByRoutine (int _id)  => workoutDao.workoutsByRoutine(_id);
   Future<List<Workout>?> readAllWorkoutsDropdown () => workoutDao.readAllWorkoutsDropdown();
 
-  Future saveWorkoutHistory (WorkoutHistory workoutHistory) => workoutDao.saveWorkoutHistory(workoutHistory);
+  Future<WorkoutHistory> saveWorkoutHistory (WorkoutHistory workoutHistory) => workoutDao.saveWorkoutHistory(workoutHistory);
   Future deleteWorkoutHistory(int _id) => workoutDao.deleteWorkoutHistory(_id);
   Future updateWorkoutHistory(WorkoutHistory workoutHistory) => workoutDao.updateWorkoutHistory(workoutHistory);
   Future<List<WorkoutHistory>?> readAllWorkoutHistory () => workoutDao.readAllWorkoutHistory();
@@ -57,8 +57,8 @@ class WorkoutRepository {
   Future<List<Weight>?> readAllWeights() => workoutDao.readAllWeights();
   Future<List<Weight>?> readAllWeightsByDate(DateTimeRange range) => workoutDao.weightsByDates(range);
 
-  Future saveSet (Set set) => workoutDao.saveSet(set);
+  Future saveSet (WorkoutSet set) => workoutDao.saveSet(set);
   Future deleteSet (int _id) => workoutDao.deleteSet(_id);
-  Future updateSet (Set set) => workoutDao.updateSet(set);
-  Future<List<Set>?> readAllSets(int _id) => workoutDao.readAllSets(_id);
+  Future updateSet (WorkoutSet set) => workoutDao.updateSet(set);
+  Future<List<WorkoutSet>?> readAllSets(int _id) => workoutDao.readAllSets(_id);
 }

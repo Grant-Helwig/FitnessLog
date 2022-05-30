@@ -6,14 +6,14 @@ class WorkoutHistory {
   late String workoutName;
   late int workoutType;
   late String date;
-  late double weight;
+  //late double weight;
   late String duration;
   late double distance;
   late double calories;
   late double heartRate;
   //late int sets;
-  late List<Set> sets;
-  late int reps;
+  late List<WorkoutSet> sets;
+  //late int reps;
   late int workoutId;
 
   WorkoutHistory();
@@ -23,13 +23,13 @@ class WorkoutHistory {
     workoutName = map[columnWorkoutName];
     workoutType = map[columnWorkoutType];
     date = map[columnDate];
-    weight = map[columnWeight];
+    //weight = map[columnWeight];
     duration = map[columnDuration];
     distance = map[columnDistance];
     calories = map[columnCalories];
     heartRate = map[columnHeartRate];
     //sets = map[columnSets];
-    reps = map[columnReps];
+    //reps = map[columnReps];
     workoutId = map[columnWorkoutId];
   }
 
@@ -39,13 +39,13 @@ class WorkoutHistory {
       columnWorkoutName: workoutName,
       columnWorkoutType:workoutType,
       columnDate: date,
-      columnWeight: weight,
+      //columnWeight: weight,
       columnDuration: duration,
       columnDistance: distance,
       columnCalories: calories,
       columnHeartRate: heartRate,
       //columnSets: sets,
-      columnReps: reps,
+      //columnReps: reps,
       columnWorkoutId: workoutId
     };
     if (id != -1) {
