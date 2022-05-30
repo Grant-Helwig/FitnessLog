@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../model/routine.dart';
 import '../model/routine_entry.dart';
+import '../model/set.dart';
 import '../model/weight.dart';
 import '../model/workout.dart';
 import '../model/workout_history.dart';
@@ -36,6 +37,10 @@ const String columnRoutineId = 'routineId';
 const String columnOrder = "entryOrder";
 //weight table
 const String tableWeight = 'Weight';
+//set table
+const String tableWorkoutHistorySet = 'WorkoutHistorySet';
+const String columnWorkoutHistoryId = 'workoutHistoryId';
+const String columnSet = 'set';
 
 class DatabaseHelper {
   // This is the actual database filename that is saved in the docs directory.
@@ -136,9 +141,73 @@ class DatabaseHelper {
                 $columnDate TEXT NOT NULL
               )
               ''');
+
+    await db.execute('''
+              CREATE TABLE $tableWorkoutHistorySet (
+                $columnId INTEGER PRIMARY KEY,
+                $columnWorkoutHistoryId INTEGER NOT NULL,
+                $columnReps INTEGER NOT NULL,
+                $columnSet INTEGER NOT NULL,
+                FOREIGN KEY($columnWorkoutHistoryId) REFERENCES $tableWorkoutHistory($columnId)
+              )
+              ''');
   }
 
   // Database helper methods
+
+  Future<int> insertSet(Set set) async {
+    Database? db = await database;
+    int id = await db!.insert(tableWorkoutHistorySet, set.toMap());
+    return id;
+  }
+
+  Future<Set?> querySet(int id) async {
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableWorkoutHistorySet,
+        columns: [
+          columnId,
+          columnWorkoutHistoryId,
+          columnReps,
+          columnSet
+        ],
+        where: '$columnId = ?',
+        whereArgs: [id]);
+    if (maps.isNotEmpty) {
+      Set temp = Set.fromMap(maps.first);
+      //temp.workoutHistory = await queryWorkoutHistory(temp.workoutHistoryId);
+      return temp;
+    }
+    return null;
+  }
+
+  Future<List<Set>?> queryAllSetsByWorkoutHistory(int id) async {
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableWorkoutHistorySet);
+    if (maps.isNotEmpty) {
+      List<Set> sets = [];
+      for (var map in maps) {
+        Set temp = Set.fromMap(map);
+        //temp.workoutHistory = await queryWorkoutHistory(temp.workoutHistoryId);
+        sets.add(temp);
+      }
+      return sets;
+    }
+    return null;
+  }
+
+  Future<int> deleteSet(int id) async {
+    Database? db = await database;
+    return await db!
+        .delete(tableWorkoutHistorySet, where: '$columnId = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateSet(Set set) async {
+    Database? db = await database;
+    return await db!.update(tableWeight, set.toMap(),
+        where: '$columnId = ?', whereArgs: [set.id]);
+  }
+
+  ////
 
   Future<int> insertWeight(Weight weight) async {
     Database? db = await database;
@@ -224,7 +293,7 @@ class DatabaseHelper {
           columnDistance,
           columnCalories,
           columnHeartRate,
-          columnSets,
+          //columnSets,
           columnReps,
           columnWorkoutId
         ],
@@ -300,7 +369,7 @@ class DatabaseHelper {
           columnDistance,
           columnCalories,
           columnHeartRate,
-          columnSets,
+          //columnSets,
           columnReps,
           columnWorkoutId
         ],

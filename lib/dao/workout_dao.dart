@@ -7,6 +7,7 @@ import '../model/routine.dart';
 import '../model/routine_entry.dart';
 import '../model/weight.dart';
 import '../model/workout.dart';
+import '../model/set.dart';
 import '../model/workout_history.dart';
 
 
@@ -496,6 +497,42 @@ class WorkoutDao {
         return b.date.compareTo(a.date);
       });
       return weightsInRange;
+    }
+  }
+
+  saveSet(Set set) async {
+
+    int id = await dbHelper.insertSet(set);
+    set.id = id;
+
+    log('inserted row: $id');
+  }
+
+  deleteSet(int _id) async {
+
+
+    int id = await dbHelper.deleteSet(_id);
+
+    log('deleted row: $id');
+  }
+
+  updateSet(Set set) async {
+
+    log('updating row: ${set.id.toString()}');
+    int id = await dbHelper.updateSet(set);
+
+    log('updated row: $id');
+  }
+
+  Future<List<Set>?> readAllSets(int _id) async {
+
+    List<Set>? sets = await dbHelper.queryAllSetsByWorkoutHistory(_id);
+    if (sets == null) {
+      log('read row empty');
+      return null;
+    } else {
+      sets.sort((a, b) => a.set.compareTo(b.set));
+      return sets;
     }
   }
 

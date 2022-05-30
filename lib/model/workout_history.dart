@@ -1,6 +1,6 @@
 //class object for saving workout history
 import '../database/workout_database.dart';
-
+import 'package:hey_workout/model/set.dart';
 class WorkoutHistory {
   int id = -1;
   late String workoutName;
@@ -11,7 +11,8 @@ class WorkoutHistory {
   late double distance;
   late double calories;
   late double heartRate;
-  late int sets;
+  //late int sets;
+  late List<Set> sets;
   late int reps;
   late int workoutId;
 
@@ -27,7 +28,7 @@ class WorkoutHistory {
     distance = map[columnDistance];
     calories = map[columnCalories];
     heartRate = map[columnHeartRate];
-    sets = map[columnSets];
+    //sets = map[columnSets];
     reps = map[columnReps];
     workoutId = map[columnWorkoutId];
   }
@@ -43,7 +44,7 @@ class WorkoutHistory {
       columnDistance: distance,
       columnCalories: calories,
       columnHeartRate: heartRate,
-      columnSets: sets,
+      //columnSets: sets,
       columnReps: reps,
       columnWorkoutId: workoutId
     };
