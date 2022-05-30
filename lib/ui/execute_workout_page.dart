@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hey_workout/repository/workout_repository.dart';
 import 'package:intl/intl.dart';
+import 'package:stop_watch_timer/stop_watch_timer.dart';
 import 'package:unicons/unicons.dart';
 
 import '../model/routine.dart';
@@ -36,6 +38,13 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
 
   late Routine? routine;
   late WorkoutHistory? history;
+  Duration stopWatchDuration = const Duration();
+  late StopWatchTimer stopWatchTimer = StopWatchTimer(
+    onChange: (value) {
+      stopWatchDuration = Duration(milliseconds: value);
+    }
+  );
+
   _ExecuteWorkoutState({required this.workouts, this.routine, this.history});
 
   @override
@@ -43,6 +52,105 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
     return executeWorkout(context);
   }
 
+  Future<void> executeStopWatch() async {
+
+    return await showDialog(
+        context: context,
+        builder: (context) {
+          return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: AlertDialog(
+                  scrollable: true,
+                  actions: [
+                    TextButton(
+                      child: Text('Ok'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                  content: StatefulBuilder(
+                      builder: (BuildContext context, StateSetter setState) {
+                        return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              StreamBuilder<int>(
+                                stream: stopWatchTimer.rawTime,
+                                initialData: stopWatchTimer.rawTime.value,
+                                builder: (context, snap) {
+                                  final value = snap.data!;
+                                  final displayTime =
+                                  StopWatchTimer.getDisplayTime(value, hours: true);
+                                  return Column(
+                                    children: <Widget>[
+                                      Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Text(
+                                          displayTime,
+                                          style: const TextStyle(
+                                              fontSize: 30,
+                                              fontFamily: 'Helvetica',
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: <Widget>[
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                                            child: ElevatedButton(
+                                              style: ButtonStyle(
+                                                backgroundColor: stopWatchTimer.isRunning ? MaterialStateProperty.all(Colors.orange)
+                                                    : MaterialStateProperty.all(Colors.green),
+                                              ),
+                                              onPressed: () async {
+                                                //_stopWatchTimer.onExecute.add(StopWatchExecute.stop);
+                                                // _stopWatchTimer.isRunning ? _stopWatchTimer.onExecute.add(StopWatchExecute.stop)
+                                                //     : _stopWatchTimer.onExecute.add(StopWatchExecute.start);
+
+                                                if(stopWatchTimer.isRunning){
+                                                  //stopWatchDuration = Duration(milliseconds: value);
+                                                  stopWatchTimer.onExecute.add(StopWatchExecute.stop);
+                                                } else {
+                                                  stopWatchTimer.onExecute.add(StopWatchExecute.start);
+                                                }
+                                              },
+                                              child: Text(
+                                                stopWatchTimer.isRunning ? "Stop" : "Start",
+                                                style: TextStyle(color: Colors.white),
+                                              ),
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                                            child: ElevatedButton(
+                                              style: ButtonStyle(
+                                                backgroundColor: MaterialStateProperty.all(Colors.red),
+                                              ),
+                                              onPressed: () async {
+                                                stopWatchTimer.onExecute.add(StopWatchExecute.reset);
+                                              },
+                                              child: const Text(
+                                                'Reset',
+                                                style: TextStyle(color: Colors.white),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ]
+                        );
+                      }
+                  )
+              )
+          );
+        }
+    );
+  }
 
   Widget executeWorkout(BuildContext context) {
     //workouts = repo.readAllWorkoutsByRoutine(routine.id);
@@ -117,6 +225,14 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                         )
               ),
           ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+           await executeStopWatch();
+          },
+          tooltip: 'Stopwatch',
+          child: const Icon(UniconsLine.stopwatch),
+          backgroundColor: Colors.white,
         ),
       ),
     );
@@ -408,62 +524,75 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                             visible: (workout.type == WorkoutType.cardio.index ||
                                 workout.type == WorkoutType.both.index) &&
                                 !cardsCompleted[index],
-                            child: TextFormField(
-                              controller: timerController,
-                              validator: (value) {
-                                if(value != null){
-                                  if(value.isNotEmpty && value != "0:00:00"){
-                                    return null;
-                                  }
-                                }
-                                if(workout.type == WorkoutType.both.index){
-                                  if(timerController.text == "0:00:00" &&
-                                      //weightController.text.isEmpty &&
-                                      //setController.text.isEmpty &&
-                                      repControllers.isEmpty &&
-                                      weightControllers.isEmpty &&
-                                      distanceController.text.isEmpty &&
-                                      caloriesController.text.isEmpty &&
-                                      heartRateController.text.isEmpty){
-                                    return "Must Fill Out a Field";
-                                  }
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 100,
+                                  child: TextFormField(
+                                    controller: timerController,
+                                    validator: (value) {
+                                      if(value != null){
+                                        if(value.isNotEmpty && value != "0:00:00"){
+                                          return null;
+                                        }
+                                      }
+                                      if(workout.type == WorkoutType.both.index){
+                                        if(timerController.text == "0:00:00" &&
+                                            weightController.text.isEmpty &&
+                                            setController.text.isEmpty &&
+                                            repController.text.isEmpty &&
+                                            distanceController.text.isEmpty &&
+                                            caloriesController.text.isEmpty &&
+                                            heartRateController.text.isEmpty){
+                                          return "Must Fill Out a Field";
+                                        }
 
-                                } else if(workout.type == WorkoutType.cardio.index){
-                                  if(distanceController.text.isEmpty &&
-                                      caloriesController.text.isEmpty &&
-                                      heartRateController.text.isEmpty){
-                                    return "Must Fill Out a Field";
-                                  }
+                                      } else if(workout.type == WorkoutType.cardio.index){
+                                        if(distanceController.text.isEmpty &&
+                                            caloriesController.text.isEmpty &&
+                                            heartRateController.text.isEmpty){
+                                          return "Must Fill Out a Field";
+                                        }
 
-                                }
-                                return null;
-                              },
-                              onTap: () async{
-                                log("current timer${timerController.text}");
-                                Duration? curTimer = Utils().parseDuration(timerController.text); //double.tryParse(timerController.text);
+                                      }
+                                      return null;
+                                    },
+                                    onTap: () async{
+                                      log("current timer${timerController.text}");
+                                      Duration? curTimer = Utils().parseDuration(timerController.text); //double.tryParse(timerController.text);
 
-                                Duration? duration;
-                                if(curTimer != null){
-                                  // duration = await showDurationPicker(context: context,
-                                  //     initialDuration: Duration(microseconds: curTimer.toInt()),
-                                  //     durationPickerMode: DurationPickerMode.Hour
-                                  //);
-                                  log("current timer${timerController.text}");
-                                  duration = await Utils().selectDuration(context, curTimer);
-                                } else {
-                                  // duration = await showDurationPicker(context: context,
-                                  //     initialDuration: const Duration(microseconds: 0),
-                                  //     durationPickerMode: DurationPickerMode.Hour
-                                  //);
-                                  log("current timer is null");
-                                  duration = await Utils().selectDuration(context,const Duration(microseconds: 0));
-                                }
-                                log("saved duration ${duration.inSeconds.toString()}");
+                                      Duration? duration;
+                                      if(curTimer != null){
+                                        // duration = await showDurationPicker(context: context,
+                                        //     initialDuration: Duration(microseconds: curTimer.toInt()),
+                                        //     durationPickerMode: DurationPickerMode.Hour
+                                        //);
+                                        log("current timer${timerController.text}");
+                                        duration = await Utils().selectDuration(context, curTimer);
+                                      } else {
+                                        // duration = await showDurationPicker(context: context,
+                                        //     initialDuration: const Duration(microseconds: 0),
+                                        //     durationPickerMode: DurationPickerMode.Hour
+                                        //);
+                                        log("current timer is null");
+                                        duration = await Utils().selectDuration(context,const Duration(microseconds: 0));
+                                      }
+                                      log("saved duration ${duration.inSeconds.toString()}");
 
-                                setState(() {
-                                  timerController.text = duration.toString().substring(0, duration.toString().indexOf('.'));
-                                });
-                              },
+                                      setState(() {
+                                        timerController.text = Utils().printDuration(duration!); //duration.toString().substring(0, duration.toString().indexOf('.') + 3);
+                                      });
+                                    },
+                                  ),
+                                ),
+                                IconButton(
+                                    onPressed: () {
+                                      timerController.text = Utils().printDuration(stopWatchDuration);//stopWatchDuration.toString().substring(0, stopWatchDuration.toString().indexOf('.') + 3);
+                                    },
+                                    icon: Icon(UniconsLine.stopwatch),
+                                )
+                              ],
                             ),
                           ),
                           Visibility(
@@ -694,6 +823,9 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
 
                                       setState(() {
                                         cardsCompleted[index] = true;
+                                        if(cardsCompleted.every((element) => element == true)){
+                                          Navigator.of(context).pop();
+                                        }
                                         //workouts = repo.readAllWorkoutsByRoutine(routine.id);
                                       });
                                     }

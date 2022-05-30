@@ -77,7 +77,11 @@ class Utils {
     String twoDigits(int n) => n.toString().padLeft(2, "0");
     String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
     String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-    return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+    int ms = duration.inMilliseconds.remainder(1000);
+    // log(duration.inMilliseconds.toString());
+    // log(ms.toString());
+    String twoDigitMilliseconds = twoDigits( ms > 1000 ? (ms / 10).ceil() : (ms ~/ 10));
+    return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds.$twoDigitMilliseconds";
   }
 
   Duration parseDuration(String s) {
