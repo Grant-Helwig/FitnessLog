@@ -252,15 +252,19 @@ class WorkoutDao {
   }
 
   deleteWorkoutHistory(int _id) async {
-    
-
+    var sets = await readAllSets(_id);
+    if(sets.isNotEmpty){
+      for(var set in sets){
+        deleteSet(set.id);
+      }
+    }
     int id = await dbHelper.deleteWorkoutHistory(_id);
 
     log('deleted row: $id');
   }
 
   Future<WorkoutHistory> updateWorkoutHistory(WorkoutHistory workoutHistory) async {
-    
+
     log('updating row: ${workoutHistory.id.toString()}');
     int id = await dbHelper.updateWorkoutHistory(workoutHistory);
     workoutHistory.id = id;

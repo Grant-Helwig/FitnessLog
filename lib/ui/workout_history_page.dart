@@ -110,6 +110,8 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     if (workout != null) {
       _workoutHistory =
           repo.workoutHistoryByWorkoutAndDates(workout!.id, _selectedDateRange!);
+    } else {
+      _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
     }
 
     //update the filtered list and the filtered index from the dropdown selection
