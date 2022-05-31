@@ -59,7 +59,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
   @override
   void initState() {
     super.initState();
-    _workoutHistory = repo.workoutHistoryByDates(Utils().weekRange());
+    _workoutHistory = repo.workoutHistoryByDates(initialDateRange);
     _workouts = repo.readAllWorkouts();
     _routineDropdown = repo.readAllRoutinesDropdown();
   }

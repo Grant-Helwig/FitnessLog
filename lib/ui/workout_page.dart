@@ -39,7 +39,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const Drawer(),
+      //drawer: const Drawer(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
