@@ -240,7 +240,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
 
   Widget executeWorkoutCard(Workout workout, int index) {
     List<TextEditingController> weightControllers = [TextEditingController()];
-    TextEditingController timerController = TextEditingController(text: Duration().toString().substring(0, Duration().toString().indexOf('.')));
+    TextEditingController timerController = TextEditingController(text: Utils().printDuration(const Duration()));//Duration().toString().substring(0, Duration().toString().indexOf('.')));
     List<TextEditingController> repControllers = [TextEditingController()];
     TextEditingController distanceController = TextEditingController();
     TextEditingController caloriesController = TextEditingController();
@@ -272,9 +272,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                   repControllers.clear();
                   weightControllers.clear();
                   timerController = TextEditingController(
-                      text: snapshot.data!.duration == Duration().toString()
-                          ? null
-                          : snapshot.data!.duration);
+                      text: snapshot.data!.duration);
                   distanceController = TextEditingController(text: snapshot.data!.distance == 0 ? null :snapshot.data!.distance.toString());
                   caloriesController = TextEditingController(text: snapshot.data!.calories == 0 ? null : snapshot.data!.calories.toString());
                   heartRateController = TextEditingController(text: snapshot.data!.heartRate == 0 ? null : snapshot.data!.heartRate.toString());
@@ -365,13 +363,16 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                                       child: TextFormField(
                                                         controller: weightControllers[index],
                                                         validator: (value) {
-                                                          if(value != null){
-                                                            if(value.isNotEmpty){
-                                                              return null;
+                                                          bool hasValue = false;
+                                                          for(int i = 0; i < repControllers.length; i++){
+                                                            if(repControllers[i].text.isNotEmpty || weightControllers[i].text.isNotEmpty){
+                                                              hasValue = true;
                                                             }
                                                           }
-
-                                                          return "Empty Weight";
+                                                          if(!hasValue){
+                                                            return "Fill out a value";
+                                                          }
+                                                          return null;
                                                         },
                                                         decoration: const InputDecoration(
                                                             hintText: "LBS", labelText: "Weight"),
@@ -387,13 +388,16 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                                       child: TextFormField(
                                                         controller: repControllers[index],
                                                         validator: (value) {
-                                                          if(value != null){
-                                                            if(value.isNotEmpty){
-                                                              return null;
-                                                            }
+                                                          bool hasValue = false;
+                                                          for(int i = 0; i < repControllers.length; i++){
+                                                              if(repControllers[i].text.isNotEmpty || weightControllers[i].text.isNotEmpty){
+                                                                hasValue = true;
+                                                              }
                                                           }
-
-                                                          return "Empty Rep";
+                                                          if(!hasValue){
+                                                            return "Fill out a value";
+                                                          }
+                                                          return null;
                                                         },
                                                         decoration: const InputDecoration(
                                                             hintText: "Reps", labelText: "Reps"),
@@ -419,7 +423,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                                 weightControllers.removeLast();
                                               });
                                             },
-                                            icon: const Icon(UniconsLine.arrow_circle_up)
+                                            icon: const Icon(UniconsLine.minus_circle)
                                         ),
                                         IconButton(
                                             onPressed: () {
@@ -428,7 +432,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                                 weightControllers.add(TextEditingController());
                                               });
                                             },
-                                            icon: const Icon(UniconsLine.arrow_circle_down)
+                                            icon: const Icon(UniconsLine.plus_circle)
                                         )
                                       ]
                                     )
@@ -533,12 +537,13 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                     controller: timerController,
                                     validator: (value) {
                                       if(value != null){
-                                        if(value.isNotEmpty && value != "0:00:00"){
+                                        if(value.isNotEmpty && value != Utils().printDuration(const Duration())){
                                           return null;
                                         }
                                       }
                                       if(workout.type == WorkoutType.both.index){
-                                        if(timerController.text == "0:00:00" &&
+                                        if(timerController.text == Utils().printDuration(const Duration()) &&
+                                            (repControllers.isEmpty && weightControllers.isEmpty) &&
                                             distanceController.text.isEmpty &&
                                             caloriesController.text.isEmpty &&
                                             heartRateController.text.isEmpty){
@@ -606,17 +611,15 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                 }
 
                                 if(workout.type == WorkoutType.both.index){
-                                  if(timerController.text == "0:00:00" &&
-                                      weightControllers.isEmpty &&
-                                      //setController.text.isEmpty &&
-                                      repControllers.isEmpty &&
+                                  if(timerController.text == Utils().printDuration(const Duration()) &&
+                                      (repControllers.isEmpty && weightControllers.isEmpty) &&
                                       caloriesController.text.isEmpty &&
                                       heartRateController.text.isEmpty){
                                     return "Must Fill Out a Field";
                                   }
 
                                 } else if(workout.type == WorkoutType.cardio.index){
-                                  if(timerController.text == "0:00:00" &&
+                                  if(timerController.text == Utils().printDuration(const Duration()) &&
                                       caloriesController.text.isEmpty &&
                                       heartRateController.text.isEmpty){
                                     return "Must Fill Out a Field";
@@ -647,10 +650,8 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                 }
 
                                 if(workout.type == WorkoutType.both.index){
-                                  if(timerController.text == "0:00:00" &&
-                                      weightControllers.isEmpty &&
-                                      //setController.text.isEmpty &&
-                                      repControllers.isEmpty &&
+                                  if(timerController.text == Utils().printDuration(const Duration()) &&
+                                      (repControllers.isEmpty && weightControllers.isEmpty) &&
                                       distanceController.text.isEmpty &&
                                       heartRateController.text.isEmpty){
                                     return "Must Fill Out a Field";
@@ -658,7 +659,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
 
                                 } else if(workout.type == WorkoutType.cardio.index){
                                   if(distanceController.text.isEmpty &&
-                                      timerController.text == "0:00:00" &&
+                                      timerController.text == Utils().printDuration(const Duration()) &&
                                       heartRateController.text.isEmpty){
                                     return "Must Fill Out a Field";
                                   }
@@ -688,10 +689,8 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                 }
 
                                 if(workout.type == WorkoutType.both.index){
-                                  if(timerController.text == "0:00:00"&&
-                                      weightControllers.isEmpty &&
-                                      //setController.text.isEmpty &&
-                                      repControllers.isEmpty &&
+                                  if(timerController.text == Utils().printDuration(const Duration()) &&
+                                      (repControllers.isEmpty && weightControllers.isEmpty) &&
                                       distanceController.text.isEmpty &&
                                       caloriesController.text.isEmpty){
                                     return "Must Fill Out a Field";
@@ -700,7 +699,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                 } else if(workout.type == WorkoutType.cardio.index){
                                   if(distanceController.text.isEmpty &&
                                       caloriesController.text.isEmpty &&
-                                      timerController.text == "0:00:00"){
+                                      timerController.text == Utils().printDuration(const Duration())){
                                     return "Must Fill Out a Field";
                                   }
 
@@ -807,14 +806,16 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                       }
 
                                       for(int i = 0; i < repControllers.length; i++){
-                                        WorkoutSet temp = WorkoutSet();
-                                        temp.reps = int.parse(repControllers[i].text.isEmpty ? "0" : repControllers[i].text);
-                                        temp.weight = double.parse(weightControllers[i].text.isEmpty
-                                            ? "0"
-                                            : weightControllers[i].text);
-                                        temp.set = i;
-                                        temp.workoutHistoryId = newHistory.id;
-                                        repo.saveSet(temp);
+                                        if(repControllers[i].text.isNotEmpty || weightControllers[i].text.isNotEmpty){
+                                          WorkoutSet temp = WorkoutSet();
+                                          temp.reps = int.parse(repControllers[i].text.isEmpty ? "0" : repControllers[i].text);
+                                          temp.weight = double.parse(weightControllers[i].text.isEmpty
+                                              ? "0"
+                                              : weightControllers[i].text);
+                                          temp.set = i;
+                                          temp.workoutHistoryId = newHistory.id;
+                                          repo.saveSet(temp);
+                                        }
                                       }
 
                                       if(routine != null){

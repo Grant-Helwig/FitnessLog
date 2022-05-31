@@ -957,7 +957,8 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                   const Divider(color: Colors.white54,),
                   Container(
                     padding: const EdgeInsets.all(8.0),
-                    child: ListView.builder(
+                    child: workoutHistory.sets.isNotEmpty
+                        ? ListView.builder(
                       shrinkWrap: true,
                       itemCount: workoutHistory.sets.length,
                       itemBuilder: (BuildContext context, int index) {
@@ -969,6 +970,13 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                           ],
                         );
                       }
+                    )
+                    : Row(
+                      children: const [
+                        Text('No Weight'),
+                        Spacer(),
+                        Text('No Reps'),
+                      ],
                     ),
                   ),
                 ],
@@ -1029,7 +1037,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     child: Row(
                       //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Heart Rate: ${Utils().getWorkoutHistoryString(workoutHistory.heartRate)}'),
+                        Text('${Utils().getWorkoutHistoryString(workoutHistory.heartRate)} Heart Rate'),
                         const Spacer(),
                         Text('${Utils().getWorkoutHistoryString(workoutHistory.calories)} Cal'),
                       ],
@@ -1076,9 +1084,10 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     ),
                   ),
                   const Divider(color: Colors.white54,),
-                  Padding(
+                  Container(
                     padding: const EdgeInsets.all(8.0),
-                    child: ListView.builder(
+                    child: workoutHistory.sets.isNotEmpty
+                        ? ListView.builder(
                         shrinkWrap: true,
                         itemCount: workoutHistory.sets.length,
                         itemBuilder: (BuildContext context, int index) {
@@ -1090,6 +1099,13 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                             ],
                           );
                         }
+                    )
+                        : Row(
+                      children: const [
+                        Text('No Weight'),
+                        Spacer(),
+                        Text('No Reps'),
+                      ],
                     ),
                   ),
                   const Divider(color: Colors.white54,),
@@ -1110,7 +1126,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     child: Row(
                       //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Heart Rate: ${Utils().getWorkoutHistoryString(workoutHistory.heartRate)}'),
+                        Text('${Utils().getWorkoutHistoryString(workoutHistory.heartRate)} Heart Rate'),
                         const Spacer(),
                         Text('${Utils().getWorkoutHistoryString(workoutHistory.calories)} Cal'),
                       ],
