@@ -428,8 +428,10 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                         IconButton(
                                             onPressed: () {
                                               setState((){
-                                                repControllers.add(TextEditingController(text: repControllers.last.text));
-                                                weightControllers.add(TextEditingController(text: weightControllers.last.text));
+                                                repControllers.add(TextEditingController(text: repControllers.isNotEmpty
+                                                    ? repControllers.last.text : null));
+                                                weightControllers.add(TextEditingController(text: weightControllers.isNotEmpty
+                                                    ? weightControllers.last.text : null));
                                               });
                                             },
                                             icon: const Icon(UniconsLine.plus_circle)

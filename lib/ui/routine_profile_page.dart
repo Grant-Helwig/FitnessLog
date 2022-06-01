@@ -738,11 +738,11 @@ class _RoutineProfileState extends State<RoutineProfile> {
         actions: [
           IconButton(
               onPressed: () async {
-                var workouts_now = await repo.readAllWorkouts();
+                var workouts = await repo.readAllWorkoutsByRoutine(routine.id);
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => ExecuteWorkout(workouts: workouts_now, routine: routine,)));
+                        builder: (context) => ExecuteWorkout(workouts: workouts, routine: routine,)));
               },
               icon: const Icon(UniconsLine.play))
         ],
