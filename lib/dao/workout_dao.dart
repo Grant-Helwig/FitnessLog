@@ -7,6 +7,7 @@ import '../model/routine.dart';
 import '../model/routine_entry.dart';
 import '../model/weight.dart';
 import '../model/workout.dart';
+import '../model/set.dart';
 import '../model/workout_history.dart';
 
 
@@ -241,28 +242,34 @@ class WorkoutDao {
     }
   }
 
-  saveWorkoutHistory(WorkoutHistory workoutHistory) async {
+  Future<WorkoutHistory> saveWorkoutHistory(WorkoutHistory workoutHistory) async {
     log(workoutHistory.workoutId.toString());
     int id = await dbHelper.insertWorkoutHistory(workoutHistory);
     workoutHistory.id = id;
 
     log('inserted row: $id');
+    return workoutHistory;
   }
 
   deleteWorkoutHistory(int _id) async {
-    
-
+    var sets = await readAllSets(_id);
+    if(sets.isNotEmpty){
+      for(var set in sets){
+        deleteSet(set.id);
+      }
+    }
     int id = await dbHelper.deleteWorkoutHistory(_id);
 
     log('deleted row: $id');
   }
 
-  updateWorkoutHistory(WorkoutHistory workoutHistory) async {
-    
+  Future<WorkoutHistory> updateWorkoutHistory(WorkoutHistory workoutHistory) async {
+
     log('updating row: ${workoutHistory.id.toString()}');
     int id = await dbHelper.updateWorkoutHistory(workoutHistory);
-
+    workoutHistory.id = id;
     log('updated row: $id');
+    return workoutHistory;
   }
 
   Future<List<WorkoutHistory>?> readAllWorkoutHistory() async {
@@ -306,6 +313,7 @@ class WorkoutDao {
       workouts.sort((a, b) {
         return b.date.compareTo(a.date);
       });
+      workouts[0].sets = await readAllSets(workouts[0].id);
       return workouts[0];
     }
   }
@@ -326,6 +334,7 @@ class WorkoutDao {
         if (range.start.isBefore(curDay) && range.end.isAfter(curDay) ||
             datesEqual(range.start, curDay) ||
             datesEqual(range.end, curDay)) {
+          value.sets = await readAllSets(value.id);
           workoutsInRange.add(value);
         } else {
           log("skipped ${value.workoutName} from ${value.date}");
@@ -351,6 +360,7 @@ class WorkoutDao {
         if (range.start.isBefore(curDay) && range.end.isAfter(curDay) ||
             datesEqual(range.start, curDay) ||
             datesEqual(range.end, curDay)) {
+          value.sets = await readAllSets(value.id);
           workoutsInRange.add(value);
         }
       }
@@ -496,6 +506,42 @@ class WorkoutDao {
         return b.date.compareTo(a.date);
       });
       return weightsInRange;
+    }
+  }
+
+  saveSet(WorkoutSet set) async {
+
+    int id = await dbHelper.insertSet(set);
+    set.id = id;
+
+    log('inserted row: $id');
+  }
+
+  deleteSet(int _id) async {
+
+
+    int id = await dbHelper.deleteSet(_id);
+
+    log('deleted row: $id');
+  }
+
+  updateSet(WorkoutSet set) async {
+
+    log('updating row: ${set.id.toString()}');
+    int id = await dbHelper.updateSet(set);
+
+    log('updated row: $id');
+  }
+
+  Future<List<WorkoutSet>> readAllSets(int _id) async {
+
+    List<WorkoutSet>? sets = await dbHelper.queryAllSetsByWorkoutHistory(_id);
+    if (sets == null) {
+      log('read row empty');
+      return [];
+    } else {
+      sets.sort((a, b) => a.set.compareTo(b.set));
+      return sets;
     }
   }
 

@@ -59,7 +59,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
   @override
   void initState() {
     super.initState();
-    _workoutHistory = repo.workoutHistoryByDates(Utils().weekRange());
+    _workoutHistory = repo.workoutHistoryByDates(initialDateRange);
     _workouts = repo.readAllWorkouts();
     _routineDropdown = repo.readAllRoutinesDropdown();
   }
@@ -110,6 +110,8 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     if (workout != null) {
       _workoutHistory =
           repo.workoutHistoryByWorkoutAndDates(workout!.id, _selectedDateRange!);
+    } else {
+      _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
     }
 
     //update the filtered list and the filtered index from the dropdown selection
@@ -188,7 +190,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
             //build a list of workout history cards
             Expanded(
               child: FutureBuilder<List<dynamic>?>(
-                future: Future.wait([_workoutHistory, _workouts]),
+                future: Future.wait([_workoutHistory]),
                 builder: (context, projectSnap) {
                   if (projectSnap.hasData &&
                       projectSnap.data![0] != null &&
@@ -199,8 +201,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                         itemBuilder: (BuildContext context, int index) =>
                             buildWorkoutCard(
                                 context,
-                                projectSnap.data![0][index],
-                                projectSnap.data![1]));
+                                projectSnap.data![0][index]));
                   } else {
                     return const Align(
                       alignment: Alignment.center,
@@ -358,574 +359,568 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
   }
 
-  Future<void> addWorkoutHistoryForm(BuildContext context, bool add,
-      WorkoutHistory workoutHistory, bool hasContext) async {
-    List<Workout>? workouts = await repo.readAllWorkouts();
+  // Future<void> addWorkoutHistoryForm(BuildContext context, bool add,
+  //     WorkoutHistory workoutHistory, bool hasContext) async {
+  //   List<Workout>? workouts = await repo.readAllWorkouts();
+  //
+  //   //names of all the workouts
+  //   List<String> workoutStrings = [];
+  //
+  //   //set to the active workout in the dropdown
+  //   Workout curWorkout = workouts![0];
+  //
+  //   if (workout != null) {
+  //     for (var i = 0; i < workouts.length; i++) {
+  //       workoutStrings.add(workouts[i].name);
+  //       if (workout!.id == workouts[i].id) {
+  //         workoutIndex = i;
+  //       }
+  //     }
+  //     curWorkout = workout!;
+  //   } else {
+  //     for (var i = 0; i < workouts.length; i++) {
+  //       workoutStrings.add(workouts[i].name);
+  //       if (workoutHistory.workoutId == workouts[i].id) {
+  //         workoutIndex = i;
+  //         curWorkout = workouts[i];
+  //       }
+  //     }
+  //   }
+  //
+  //   //default all of the form fields if there was history
+  //   TextEditingController workoutNameController = TextEditingController(
+  //       text: workout != null ? workout!.name : workoutStrings[0]);
+  //   TextEditingController weightController = TextEditingController(
+  //       text: workoutHistory.weight == 0 ? null : workoutHistory.weight.toString());
+  //   TextEditingController timerController = TextEditingController(text: workoutHistory.duration);
+  //   TextEditingController setController = TextEditingController(
+  //       text: workoutHistory.sets == 0 ? null : workoutHistory.sets.toString());
+  //   TextEditingController repController = TextEditingController(
+  //       text: workoutHistory.reps == 0 ? null : workoutHistory.reps.toString());
+  //   TextEditingController distanceController = TextEditingController(
+  //       text: workoutHistory.distance == 0 ? null : workoutHistory.distance.toString());
+  //   TextEditingController caloriesController = TextEditingController(
+  //       text: workoutHistory.calories == 0 ? null : workoutHistory.calories.toString());
+  //   TextEditingController heartRateController = TextEditingController(
+  //       text: workoutHistory.heartRate == 0 ? null : workoutHistory.heartRate.toString());
+  //   DateTime myDateTime =
+  //     add ? DateTime.now() : DateTime.parse(workoutHistory.date);
+  //   TextEditingController dateController = TextEditingController(
+  //       text: DateFormat('yyyy/MM/dd').format(myDateTime));
+  //   TextEditingController timeController = TextEditingController(
+  //       text: DateFormat('hh:mm a').format(myDateTime));
+  //
+  //   return await showDialog(
+  //     context: context,
+  //     builder: (context) {
+  //       return SingleChildScrollView(
+  //         physics: const ClampingScrollPhysics(),
+  //         child: AlertDialog(
+  //           scrollable: true,
+  //           content: StatefulBuilder(
+  //               builder: (BuildContext context, StateSetter setState) {
+  //                 return Form(
+  //                   key: _formKey,
+  //                   child: Column(
+  //                     mainAxisSize: MainAxisSize.min,
+  //                     children: [
+  //                       //grab the list of workouts for the dropdown
+  //                       FutureBuilder<List<Workout>?>(
+  //                           future: _workouts,
+  //                           builder: (context, projectSnap) {
+  //                             if (projectSnap.hasData) {
+  //                               //if we are updating the record the dropdown should not be clickable
+  //                               return IgnorePointer(
+  //                                 ignoring: !add || hasContext,
+  //                                 child: DropdownButton<String>(
+  //                                   isExpanded: true,
+  //                                   value: projectSnap.data![workoutIndex].name,
+  //                                   icon: add
+  //                                       ? const Icon(UniconsLine.angle_down)
+  //                                       : const Icon(null),
+  //                                   elevation: 16,
+  //                                   style: add
+  //                                       ? const TextStyle(color: Colors.white)
+  //                                       : const TextStyle(color: Colors.grey),
+  //                                   underline: Container(
+  //                                     height: 2,
+  //                                     color: Colors.white,
+  //                                   ),
+  //                                   onChanged: (String? newValue) async {
+  //                                     //need to save the index for the new dropdown selection
+  //                                     int i = await updateWorkoutIndex(newValue);
+  //
+  //                                     //gwe the most recent workout history for the new value
+  //                                     WorkoutHistory? mostRecentWorkoutHistory =
+  //                                     await repo.mostRecentWorkoutHistoryByWorkout(
+  //                                         projectSnap.data![i].id);
+  //
+  //                                     setState(() {
+  //                                       //if there is history, update all of controller values
+  //                                       if (mostRecentWorkoutHistory != null) {
+  //                                         weightController.text =
+  //                                             mostRecentWorkoutHistory.weight
+  //                                                 .toString();
+  //                                         timerController.text =
+  //                                             mostRecentWorkoutHistory.duration;
+  //                                         setController.text =
+  //                                             mostRecentWorkoutHistory.sets
+  //                                                 .toString();
+  //                                         repController.text =
+  //                                             mostRecentWorkoutHistory.reps
+  //                                                 .toString();
+  //                                       } else {
+  //                                         weightController.text = "";
+  //                                         timerController.text = "";
+  //                                         setController.text = "";
+  //                                         repController.text = "";
+  //                                       }
+  //                                       workoutNameController.text = newValue!;
+  //                                       curWorkout = projectSnap.data![i];
+  //                                     });
+  //                                   },
+  //                                   items: projectSnap.data!
+  //                                       .map<DropdownMenuItem<String>>(
+  //                                           (Workout value) {
+  //                                         return DropdownMenuItem<String>(
+  //                                           value: value.name,
+  //                                           child: Text(value.name),
+  //                                         );
+  //                                       }).toList(),
+  //                                 ),
+  //                               );
+  //                             } else {
+  //                               return const Text(
+  //                                 'No History',
+  //                                 textAlign: TextAlign.center,
+  //                               );
+  //                             }
+  //                           }),
+  //
+  //                       //display each history based on the workout type with empty validations
+  //                       Visibility(
+  //                         visible: curWorkout.type == WorkoutType.strength.index ||
+  //                             curWorkout.type == WorkoutType.both.index,
+  //                         child: TextFormField(
+  //                           controller: weightController,
+  //                           validator: (value) {
+  //                             if(value != null){
+  //                               if(value.isNotEmpty){
+  //                                 return null;
+  //                               }
+  //                             }
+  //                             if(curWorkout.type == WorkoutType.both.index){
+  //                               if(timerController.text == "0:00:00" &&
+  //                                   setController.text.isEmpty &&
+  //                                   repController.text.isEmpty &&
+  //                                   distanceController.text.isEmpty &&
+  //                                   caloriesController.text.isEmpty &&
+  //                                   heartRateController.text.isEmpty){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             } else if(curWorkout.type == WorkoutType.strength.index){
+  //                               if(setController.text.isEmpty &&
+  //                                   repController.text.isEmpty){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             }
+  //                             return null;
+  //                           },
+  //                           decoration: const InputDecoration(
+  //                               hintText: "LBS", labelText: "Weight"),
+  //                           keyboardType: TextInputType.number,
+  //                           inputFormatters: <TextInputFormatter>[
+  //                             FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                       Visibility(
+  //                         visible: curWorkout.type == WorkoutType.strength.index ||
+  //                             curWorkout.type == WorkoutType.both.index,
+  //                         child: Row(
+  //                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //                             children: [
+  //                               Container(
+  //                                 width: 50,
+  //                                 child: TextFormField(
+  //                                   controller: setController,
+  //                                   validator: (value) {
+  //                                     if(value != null){
+  //                                       if(value.isNotEmpty){
+  //                                         return null;
+  //                                       }
+  //                                     }
+  //
+  //                                     if(curWorkout.type == WorkoutType.both.index){
+  //                                       if(timerController.text == "0:00:00" &&
+  //                                           weightController.text.isEmpty &&
+  //                                           repController.text.isEmpty &&
+  //                                           distanceController.text.isEmpty &&
+  //                                           caloriesController.text.isEmpty &&
+  //                                           heartRateController.text.isEmpty){
+  //                                         return "Must Fill Out a Field";
+  //                                       }
+  //
+  //                                     } else if(curWorkout.type == WorkoutType.strength.index){
+  //                                       if(weightController.text.isEmpty &&
+  //                                           repController.text.isEmpty){
+  //                                         return "Must Fill Out a Field";
+  //                                       }
+  //
+  //                                     }
+  //                                     return null;
+  //                                   },
+  //                                   decoration: const InputDecoration(
+  //                                       hintText: "Sets", labelText: "Sets"),
+  //                                   keyboardType: TextInputType.number,
+  //                                   inputFormatters: <TextInputFormatter>[
+  //                                     FilteringTextInputFormatter.allow(
+  //                                         RegExp(r'[0-9]')),
+  //                                   ],
+  //                                 ),
+  //                               ),
+  //                               Container(
+  //                                 width: 50,
+  //                                 child: TextFormField(
+  //                                   controller: repController,
+  //                                   validator: (value) {
+  //                                     if(value != null){
+  //                                       if(value.isNotEmpty){
+  //                                         return null;
+  //                                       }
+  //                                     }
+  //
+  //                                     if(curWorkout.type == WorkoutType.both.index){
+  //                                       if(timerController.text == "0:00:00" &&
+  //                                           weightController.text.isEmpty &&
+  //                                           setController.text.isEmpty &&
+  //                                           distanceController.text.isEmpty &&
+  //                                           caloriesController.text.isEmpty &&
+  //                                           heartRateController.text.isEmpty){
+  //                                         return "Must Fill Out a Field";
+  //                                       }
+  //
+  //                                     } else if(curWorkout.type == WorkoutType.strength.index){
+  //                                       if(weightController.text.isEmpty &&
+  //                                           setController.text.isEmpty){
+  //                                         return "Must Fill Out a Field";
+  //                                       }
+  //
+  //                                     }
+  //                                     return null;
+  //                                   },
+  //                                   decoration: const InputDecoration(
+  //                                       hintText: "Reps", labelText: "Reps"),
+  //                                   keyboardType: TextInputType.number,
+  //                                   inputFormatters: <TextInputFormatter>[
+  //                                     FilteringTextInputFormatter.allow(
+  //                                         RegExp(r'[0-9]')),
+  //                                   ],
+  //                                 ),
+  //                               ),
+  //                             ]),
+  //                       ),
+  //                       Visibility(
+  //                         visible: curWorkout.type == WorkoutType.cardio.index ||
+  //                             curWorkout.type == WorkoutType.both.index,
+  //                         child: TextFormField(
+  //                           controller: timerController,
+  //                           readOnly: true,
+  //                           validator: (value) {
+  //                             if(value != null){
+  //                               if(value.isNotEmpty && value != "0:00:00"){
+  //                                 return null;
+  //                               }
+  //                             }
+  //                             if(curWorkout.type == WorkoutType.both.index){
+  //                               if(weightController.text.isEmpty &&
+  //                                   setController.text.isEmpty &&
+  //                                   repController.text.isEmpty &&
+  //                                   distanceController.text.isEmpty &&
+  //                                   caloriesController.text.isEmpty &&
+  //                                   heartRateController.text.isEmpty){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             } else if(curWorkout.type == WorkoutType.cardio.index){
+  //                               if(distanceController.text.isEmpty &&
+  //                                   caloriesController.text.isEmpty &&
+  //                                   heartRateController.text.isEmpty){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             }
+  //                             return null;
+  //                           },
+  //                           decoration: const InputDecoration(
+  //                               hintText: "Duration", labelText: "Duration"),
+  //                           onTap: () async{
+  //                             log("current timer${timerController.text}");
+  //                             Duration? curTimer = parseDuration(timerController.text); //double.tryParse(timerController.text);
+  //
+  //                             Duration? duration;
+  //                             if(curTimer != null){
+  //                               // duration = await showDurationPicker(context: context,
+  //                               //     initialDuration: Duration(microseconds: curTimer.toInt()),
+  //                               //     durationPickerMode: DurationPickerMode.Hour
+  //                               //);
+  //                               log("current timer${timerController.text}");
+  //                               duration = await Utils().selectDuration(context, curTimer);
+  //                             } else {
+  //                               // duration = await showDurationPicker(context: context,
+  //                               //     initialDuration: const Duration(microseconds: 0),
+  //                               //     durationPickerMode: DurationPickerMode.Hour
+  //                               //);
+  //                               log("current timer is null");
+  //                               duration = await Utils().selectDuration(context,const Duration(microseconds: 0));
+  //                             }
+  //                             log("saved duration ${duration.inSeconds.toString()}");
+  //
+  //                             setState(() {
+  //                               timerController.text = duration.toString().substring(0, duration.toString().indexOf('.'));
+  //                             });
+  //                           },
+  //                           // keyboardType: TextInputType.number,
+  //                           // inputFormatters: <TextInputFormatter>[
+  //                           //   FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+  //                           //],
+  //                         ),
+  //                       ),
+  //                       Visibility(
+  //                         visible: curWorkout.type == WorkoutType.cardio.index ||
+  //                             curWorkout.type == WorkoutType.both.index,
+  //                         child: TextFormField(
+  //                           controller: distanceController,
+  //                           validator: (value) {
+  //                             if(value != null){
+  //                               if(value.isNotEmpty){
+  //                                 return null;
+  //                               }
+  //                             }
+  //
+  //                             if(curWorkout.type == WorkoutType.both.index){
+  //                               if(timerController.text == "0:00:00" &&
+  //                                   weightController.text.isEmpty &&
+  //                                   setController.text.isEmpty &&
+  //                                   repController.text.isEmpty &&
+  //                                   caloriesController.text.isEmpty &&
+  //                                   heartRateController.text.isEmpty){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             } else if(curWorkout.type == WorkoutType.cardio.index){
+  //                               if(timerController.text == "0:00:00" &&
+  //                                   caloriesController.text.isEmpty &&
+  //                                   heartRateController.text.isEmpty){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             }
+  //                             return null;
+  //                           },
+  //                           decoration: const InputDecoration(
+  //                               hintText: "Miles", labelText: "Distance"),
+  //                           keyboardType: TextInputType.number,
+  //                           inputFormatters: <TextInputFormatter>[
+  //                             FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                       Visibility(
+  //                         visible: curWorkout.type == WorkoutType.cardio.index ||
+  //                             curWorkout.type == WorkoutType.both.index,
+  //                         child: TextFormField(
+  //                           controller: caloriesController,
+  //                           validator: (value) {
+  //                             if(value != null){
+  //                               if(value.isNotEmpty){
+  //                                 return null;
+  //                               }
+  //                             }
+  //
+  //                             if(curWorkout.type == WorkoutType.both.index){
+  //                               if(timerController.text == "0:00:00" &&
+  //                                   weightController.text.isEmpty &&
+  //                                   setController.text.isEmpty &&
+  //                                   repController.text.isEmpty &&
+  //                                   distanceController.text.isEmpty &&
+  //                                   heartRateController.text.isEmpty){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             } else if(curWorkout.type == WorkoutType.cardio.index){
+  //                               if(distanceController.text.isEmpty &&
+  //                                   timerController.text == "0:00:00" &&
+  //                                   heartRateController.text.isEmpty){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             }
+  //                             return null;
+  //                           },
+  //                           decoration: const InputDecoration(
+  //                               hintText: "Calories", labelText: "Calories"),
+  //                           keyboardType: TextInputType.number,
+  //                           inputFormatters: <TextInputFormatter>[
+  //                             FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                       Visibility(
+  //                         visible: curWorkout.type == WorkoutType.cardio.index ||
+  //                             curWorkout.type == WorkoutType.both.index,
+  //                         child: TextFormField(
+  //                           controller: heartRateController,
+  //                           validator: (value) {
+  //                             if(value != null){
+  //                               if(value.isNotEmpty){
+  //                                 return null;
+  //                               }
+  //                             }
+  //
+  //                             if(curWorkout.type == WorkoutType.both.index){
+  //                               if(timerController.text == "0:00:00" &&
+  //                                   weightController.text.isEmpty &&
+  //                                   setController.text.isEmpty &&
+  //                                   repController.text.isEmpty &&
+  //                                   distanceController.text.isEmpty &&
+  //                                   caloriesController.text.isEmpty){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             } else if(curWorkout.type == WorkoutType.cardio.index){
+  //                               if(distanceController.text.isEmpty &&
+  //                                   caloriesController.text.isEmpty &&
+  //                                   timerController.text == "0:00:00"){
+  //                                 return "Must Fill Out a Field";
+  //                               }
+  //
+  //                             }
+  //                             return null;
+  //                           },
+  //                           decoration: const InputDecoration(
+  //                               hintText: "BPM", labelText: "Heart Rate"),
+  //                           keyboardType: TextInputType.number,
+  //                           inputFormatters: <TextInputFormatter>[
+  //                             FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                       TextField(
+  //                         controller: dateController,
+  //                         readOnly: true,
+  //                         onTap: () async {
+  //                           DateTime now = DateTime.now();
+  //                           var dateTemp = (await showDatePicker(
+  //                             context: context,
+  //                             initialDate: DateTime.parse(workoutHistory.date),
+  //                             firstDate: DateTime(now.year - 5, now.month, now.day),
+  //                             lastDate: DateTime(now.year, now.month, now.day),
+  //                           ));
+  //                           if(dateTemp != null){
+  //                             myDateTime = DateTime(dateTemp.year, dateTemp.month, dateTemp.day, myDateTime.hour, myDateTime.minute);
+  //                             dateController.text =
+  //                                 DateFormat('yyyy/MM/dd').format(myDateTime);
+  //                             setState(() {});
+  //                           }
+  //                         },
+  //                       ),
+  //                       TextField(
+  //                         controller: timeController,
+  //                         readOnly: true,
+  //                         onTap: () async {
+  //                           var timeTemp = (await showTimePicker(
+  //                               context: context,
+  //                               initialTime:TimeOfDay.fromDateTime(DateTime.parse(workoutHistory.date))
+  //                           ));
+  //                           if(timeTemp != null){
+  //                             myDateTime = DateTime(myDateTime.year, myDateTime.month, myDateTime.day, timeTemp.hour, timeTemp.minute);
+  //                             timeController.text =
+  //                                 DateFormat('hh:mm a').format(myDateTime);
+  //                             setState(() {});
+  //                           }
+  //                         },
+  //                       )
+  //                     ],
+  //                   ),
+  //                 );
+  //               }),
+  //           actions: <Widget>[
+  //             TextButton(
+  //               onPressed: () {
+  //                 Navigator.of(context).pop();
+  //               },
+  //               child: const Text("Cancel"),
+  //             ),
+  //             TextButton(
+  //               onPressed: () async {
+  //                 //verify form validations
+  //                 if (_formKey.currentState!.validate()) {
+  //                   workoutHistory.workoutName = workoutNameController.text;
+  //                   workoutHistory.date = myDateTime.toString();
+  //                   // workoutHistory.sets = int.parse(setController.text.isEmpty
+  //                   //     ? "0"
+  //                   //     : setController.text);
+  //                   // workoutHistory.reps = int.parse(repController.text.isEmpty
+  //                   //     ? "0"
+  //                   //     : repController.text);
+  //                   workoutHistory.weight = double.parse(
+  //                       weightController.text.isEmpty
+  //                           ? "0"
+  //                           : weightController.text);
+  //                   workoutHistory.duration = timerController.text;
+  //                   workoutHistory.distance = double.parse(
+  //                       distanceController.text.isEmpty
+  //                           ? "0"
+  //                           : distanceController.text);
+  //                   workoutHistory.calories = double.parse(
+  //                       caloriesController.text.isEmpty
+  //                           ? "0"
+  //                           : caloriesController.text);
+  //                   workoutHistory.heartRate = double.parse(
+  //                       heartRateController.text.isEmpty
+  //                           ? "0"
+  //                           : heartRateController.text);
+  //                   if (!add) {
+  //                     //for updating existing workout history records
+  //                     repo.updateWorkoutHistory(workoutHistory);
+  //                   } else {
+  //                     //on add, get relevant info from the dropdown selection
+  //                     for (var i = 0; i < workouts.length; i++) {
+  //                       if (workouts[i].name == workoutNameController.text) {
+  //                         workoutHistory.workoutId = workouts[i].id;
+  //                         workoutHistory.workoutType = workouts[i].type;
+  //                       }
+  //                     }
+  //                     repo.saveWorkoutHistory(workoutHistory);
+  //                   }
+  //
+  //                   //update the workout history list, and reset the index
+  //                   setState(() {
+  //                     _workoutHistory =
+  //                         repo.workoutHistoryByDates(_selectedDateRange!);
+  //                     filterIndex = 0;
+  //                   });
+  //                   Navigator.of(context).pop();
+  //                 }
+  //               },
+  //               child: const Text("Save"),
+  //             )
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
-    //names of all the workouts
-    List<String> workoutStrings = [];
+  Widget buildWorkoutCard(BuildContext context, WorkoutHistory workoutHistory) {
+    WorkoutType type = WorkoutType.values[workoutHistory.workoutType];
 
-    //set to the active workout in the dropdown
-    Workout curWorkout = workouts![0];
-
-    if (workout != null) {
-      for (var i = 0; i < workouts.length; i++) {
-        workoutStrings.add(workouts[i].name);
-        if (workout!.id == workouts[i].id) {
-          workoutIndex = i;
-        }
-      }
-      curWorkout = workout!;
-    } else {
-      for (var i = 0; i < workouts.length; i++) {
-        workoutStrings.add(workouts[i].name);
-        if (workoutHistory.workoutId == workouts[i].id) {
-          workoutIndex = i;
-          curWorkout = workouts[i];
-        }
-      }
-    }
-
-    //default all of the form fields if there was history
-    TextEditingController workoutNameController = TextEditingController(
-        text: workout != null ? workout!.name : workoutStrings[0]);
-    TextEditingController weightController = TextEditingController(
-        text: workoutHistory.weight == 0 ? null : workoutHistory.weight.toString());
-    TextEditingController timerController = TextEditingController(text: workoutHistory.duration);
-    TextEditingController setController = TextEditingController(
-        text: workoutHistory.sets == 0 ? null : workoutHistory.sets.toString());
-    TextEditingController repController = TextEditingController(
-        text: workoutHistory.reps == 0 ? null : workoutHistory.reps.toString());
-    TextEditingController distanceController = TextEditingController(
-        text: workoutHistory.distance == 0 ? null : workoutHistory.distance.toString());
-    TextEditingController caloriesController = TextEditingController(
-        text: workoutHistory.calories == 0 ? null : workoutHistory.calories.toString());
-    TextEditingController heartRateController = TextEditingController(
-        text: workoutHistory.heartRate == 0 ? null : workoutHistory.heartRate.toString());
-    DateTime myDateTime =
-      add ? DateTime.now() : DateTime.parse(workoutHistory.date);
-    TextEditingController dateController = TextEditingController(
-        text: DateFormat('yyyy/MM/dd').format(myDateTime));
-    TextEditingController timeController = TextEditingController(
-        text: DateFormat('hh:mm a').format(myDateTime));
-
-    return await showDialog(
-      context: context,
-      builder: (context) {
-        return SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: AlertDialog(
-            scrollable: true,
-            content: StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-                  return Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        //grab the list of workouts for the dropdown
-                        FutureBuilder<List<Workout>?>(
-                            future: _workouts,
-                            builder: (context, projectSnap) {
-                              if (projectSnap.hasData) {
-                                //if we are updating the record the dropdown should not be clickable
-                                return IgnorePointer(
-                                  ignoring: !add || hasContext,
-                                  child: DropdownButton<String>(
-                                    isExpanded: true,
-                                    value: projectSnap.data![workoutIndex].name,
-                                    icon: add
-                                        ? const Icon(UniconsLine.angle_down)
-                                        : const Icon(null),
-                                    elevation: 16,
-                                    style: add
-                                        ? const TextStyle(color: Colors.white)
-                                        : const TextStyle(color: Colors.grey),
-                                    underline: Container(
-                                      height: 2,
-                                      color: Colors.white,
-                                    ),
-                                    onChanged: (String? newValue) async {
-                                      //need to save the index for the new dropdown selection
-                                      int i = await updateWorkoutIndex(newValue);
-
-                                      //gwe the most recent workout history for the new value
-                                      WorkoutHistory? mostRecentWorkoutHistory =
-                                      await repo.mostRecentWorkoutHistoryByWorkout(
-                                          projectSnap.data![i].id);
-
-                                      setState(() {
-                                        //if there is history, update all of controller values
-                                        if (mostRecentWorkoutHistory != null) {
-                                          weightController.text =
-                                              mostRecentWorkoutHistory.weight
-                                                  .toString();
-                                          timerController.text =
-                                              mostRecentWorkoutHistory.duration;
-                                          setController.text =
-                                              mostRecentWorkoutHistory.sets
-                                                  .toString();
-                                          repController.text =
-                                              mostRecentWorkoutHistory.reps
-                                                  .toString();
-                                        } else {
-                                          weightController.text = "";
-                                          timerController.text = "";
-                                          setController.text = "";
-                                          repController.text = "";
-                                        }
-                                        workoutNameController.text = newValue!;
-                                        curWorkout = projectSnap.data![i];
-                                      });
-                                    },
-                                    items: projectSnap.data!
-                                        .map<DropdownMenuItem<String>>(
-                                            (Workout value) {
-                                          return DropdownMenuItem<String>(
-                                            value: value.name,
-                                            child: Text(value.name),
-                                          );
-                                        }).toList(),
-                                  ),
-                                );
-                              } else {
-                                return const Text(
-                                  'No History',
-                                  textAlign: TextAlign.center,
-                                );
-                              }
-                            }),
-
-                        //display each history based on the workout type with empty validations
-                        Visibility(
-                          visible: curWorkout.type == WorkoutType.strength.index ||
-                              curWorkout.type == WorkoutType.both.index,
-                          child: TextFormField(
-                            controller: weightController,
-                            validator: (value) {
-                              if(value != null){
-                                if(value.isNotEmpty){
-                                  return null;
-                                }
-                              }
-                              if(curWorkout.type == WorkoutType.both.index){
-                                if(timerController.text == "0:00:00" &&
-                                    setController.text.isEmpty &&
-                                    repController.text.isEmpty &&
-                                    distanceController.text.isEmpty &&
-                                    caloriesController.text.isEmpty &&
-                                    heartRateController.text.isEmpty){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              } else if(curWorkout.type == WorkoutType.strength.index){
-                                if(setController.text.isEmpty &&
-                                    repController.text.isEmpty){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              }
-                              return null;
-                            },
-                            decoration: const InputDecoration(
-                                hintText: "LBS", labelText: "Weight"),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: <TextInputFormatter>[
-                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                            ],
-                          ),
-                        ),
-                        Visibility(
-                          visible: curWorkout.type == WorkoutType.strength.index ||
-                              curWorkout.type == WorkoutType.both.index,
-                          child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  width: 50,
-                                  child: TextFormField(
-                                    controller: setController,
-                                    validator: (value) {
-                                      if(value != null){
-                                        if(value.isNotEmpty){
-                                          return null;
-                                        }
-                                      }
-
-                                      if(curWorkout.type == WorkoutType.both.index){
-                                        if(timerController.text == "0:00:00" &&
-                                            weightController.text.isEmpty &&
-                                            repController.text.isEmpty &&
-                                            distanceController.text.isEmpty &&
-                                            caloriesController.text.isEmpty &&
-                                            heartRateController.text.isEmpty){
-                                          return "Must Fill Out a Field";
-                                        }
-
-                                      } else if(curWorkout.type == WorkoutType.strength.index){
-                                        if(weightController.text.isEmpty &&
-                                            repController.text.isEmpty){
-                                          return "Must Fill Out a Field";
-                                        }
-
-                                      }
-                                      return null;
-                                    },
-                                    decoration: const InputDecoration(
-                                        hintText: "Sets", labelText: "Sets"),
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: <TextInputFormatter>[
-                                      FilteringTextInputFormatter.allow(
-                                          RegExp(r'[0-9]')),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  width: 50,
-                                  child: TextFormField(
-                                    controller: repController,
-                                    validator: (value) {
-                                      if(value != null){
-                                        if(value.isNotEmpty){
-                                          return null;
-                                        }
-                                      }
-
-                                      if(curWorkout.type == WorkoutType.both.index){
-                                        if(timerController.text == "0:00:00" &&
-                                            weightController.text.isEmpty &&
-                                            setController.text.isEmpty &&
-                                            distanceController.text.isEmpty &&
-                                            caloriesController.text.isEmpty &&
-                                            heartRateController.text.isEmpty){
-                                          return "Must Fill Out a Field";
-                                        }
-
-                                      } else if(curWorkout.type == WorkoutType.strength.index){
-                                        if(weightController.text.isEmpty &&
-                                            setController.text.isEmpty){
-                                          return "Must Fill Out a Field";
-                                        }
-
-                                      }
-                                      return null;
-                                    },
-                                    decoration: const InputDecoration(
-                                        hintText: "Reps", labelText: "Reps"),
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: <TextInputFormatter>[
-                                      FilteringTextInputFormatter.allow(
-                                          RegExp(r'[0-9]')),
-                                    ],
-                                  ),
-                                ),
-                              ]),
-                        ),
-                        Visibility(
-                          visible: curWorkout.type == WorkoutType.cardio.index ||
-                              curWorkout.type == WorkoutType.both.index,
-                          child: TextFormField(
-                            controller: timerController,
-                            readOnly: true,
-                            validator: (value) {
-                              if(value != null){
-                                if(value.isNotEmpty && value != "0:00:00"){
-                                  return null;
-                                }
-                              }
-                              if(curWorkout.type == WorkoutType.both.index){
-                                if(weightController.text.isEmpty &&
-                                    setController.text.isEmpty &&
-                                    repController.text.isEmpty &&
-                                    distanceController.text.isEmpty &&
-                                    caloriesController.text.isEmpty &&
-                                    heartRateController.text.isEmpty){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              } else if(curWorkout.type == WorkoutType.cardio.index){
-                                if(distanceController.text.isEmpty &&
-                                    caloriesController.text.isEmpty &&
-                                    heartRateController.text.isEmpty){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              }
-                              return null;
-                            },
-                            decoration: const InputDecoration(
-                                hintText: "Duration", labelText: "Duration"),
-                            onTap: () async{
-                              log("current timer${timerController.text}");
-                              Duration? curTimer = parseDuration(timerController.text); //double.tryParse(timerController.text);
-
-                              Duration? duration;
-                              if(curTimer != null){
-                                // duration = await showDurationPicker(context: context,
-                                //     initialDuration: Duration(microseconds: curTimer.toInt()),
-                                //     durationPickerMode: DurationPickerMode.Hour
-                                //);
-                                log("current timer${timerController.text}");
-                                duration = await Utils().selectDuration(context, curTimer);
-                              } else {
-                                // duration = await showDurationPicker(context: context,
-                                //     initialDuration: const Duration(microseconds: 0),
-                                //     durationPickerMode: DurationPickerMode.Hour
-                                //);
-                                log("current timer is null");
-                                duration = await Utils().selectDuration(context,const Duration(microseconds: 0));
-                              }
-                              log("saved duration ${duration.inSeconds.toString()}");
-
-                              setState(() {
-                                timerController.text = duration.toString().substring(0, duration.toString().indexOf('.'));
-                              });
-                            },
-                            // keyboardType: TextInputType.number,
-                            // inputFormatters: <TextInputFormatter>[
-                            //   FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                            //],
-                          ),
-                        ),
-                        Visibility(
-                          visible: curWorkout.type == WorkoutType.cardio.index ||
-                              curWorkout.type == WorkoutType.both.index,
-                          child: TextFormField(
-                            controller: distanceController,
-                            validator: (value) {
-                              if(value != null){
-                                if(value.isNotEmpty){
-                                  return null;
-                                }
-                              }
-
-                              if(curWorkout.type == WorkoutType.both.index){
-                                if(timerController.text == "0:00:00" &&
-                                    weightController.text.isEmpty &&
-                                    setController.text.isEmpty &&
-                                    repController.text.isEmpty &&
-                                    caloriesController.text.isEmpty &&
-                                    heartRateController.text.isEmpty){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              } else if(curWorkout.type == WorkoutType.cardio.index){
-                                if(timerController.text == "0:00:00" &&
-                                    caloriesController.text.isEmpty &&
-                                    heartRateController.text.isEmpty){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              }
-                              return null;
-                            },
-                            decoration: const InputDecoration(
-                                hintText: "Miles", labelText: "Distance"),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: <TextInputFormatter>[
-                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                            ],
-                          ),
-                        ),
-                        Visibility(
-                          visible: curWorkout.type == WorkoutType.cardio.index ||
-                              curWorkout.type == WorkoutType.both.index,
-                          child: TextFormField(
-                            controller: caloriesController,
-                            validator: (value) {
-                              if(value != null){
-                                if(value.isNotEmpty){
-                                  return null;
-                                }
-                              }
-
-                              if(curWorkout.type == WorkoutType.both.index){
-                                if(timerController.text == "0:00:00" &&
-                                    weightController.text.isEmpty &&
-                                    setController.text.isEmpty &&
-                                    repController.text.isEmpty &&
-                                    distanceController.text.isEmpty &&
-                                    heartRateController.text.isEmpty){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              } else if(curWorkout.type == WorkoutType.cardio.index){
-                                if(distanceController.text.isEmpty &&
-                                    timerController.text == "0:00:00" &&
-                                    heartRateController.text.isEmpty){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              }
-                              return null;
-                            },
-                            decoration: const InputDecoration(
-                                hintText: "Calories", labelText: "Calories"),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: <TextInputFormatter>[
-                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                            ],
-                          ),
-                        ),
-                        Visibility(
-                          visible: curWorkout.type == WorkoutType.cardio.index ||
-                              curWorkout.type == WorkoutType.both.index,
-                          child: TextFormField(
-                            controller: heartRateController,
-                            validator: (value) {
-                              if(value != null){
-                                if(value.isNotEmpty){
-                                  return null;
-                                }
-                              }
-
-                              if(curWorkout.type == WorkoutType.both.index){
-                                if(timerController.text == "0:00:00" &&
-                                    weightController.text.isEmpty &&
-                                    setController.text.isEmpty &&
-                                    repController.text.isEmpty &&
-                                    distanceController.text.isEmpty &&
-                                    caloriesController.text.isEmpty){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              } else if(curWorkout.type == WorkoutType.cardio.index){
-                                if(distanceController.text.isEmpty &&
-                                    caloriesController.text.isEmpty &&
-                                    timerController.text == "0:00:00"){
-                                  return "Must Fill Out a Field";
-                                }
-
-                              }
-                              return null;
-                            },
-                            decoration: const InputDecoration(
-                                hintText: "BPM", labelText: "Heart Rate"),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: <TextInputFormatter>[
-                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                            ],
-                          ),
-                        ),
-                        TextField(
-                          controller: dateController,
-                          readOnly: true,
-                          onTap: () async {
-                            DateTime now = DateTime.now();
-                            var dateTemp = (await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.parse(workoutHistory.date),
-                              firstDate: DateTime(now.year - 5, now.month, now.day),
-                              lastDate: DateTime(now.year, now.month, now.day),
-                            ));
-                            if(dateTemp != null){
-                              myDateTime = DateTime(dateTemp.year, dateTemp.month, dateTemp.day, myDateTime.hour, myDateTime.minute);
-                              dateController.text =
-                                  DateFormat('yyyy/MM/dd').format(myDateTime);
-                              setState(() {});
-                            }
-                          },
-                        ),
-                        TextField(
-                          controller: timeController,
-                          readOnly: true,
-                          onTap: () async {
-                            var timeTemp = (await showTimePicker(
-                                context: context,
-                                initialTime:TimeOfDay.fromDateTime(DateTime.parse(workoutHistory.date))
-                            ));
-                            if(timeTemp != null){
-                              myDateTime = DateTime(myDateTime.year, myDateTime.month, myDateTime.day, timeTemp.hour, timeTemp.minute);
-                              timeController.text =
-                                  DateFormat('hh:mm a').format(myDateTime);
-                              setState(() {});
-                            }
-                          },
-                        )
-                      ],
-                    ),
-                  );
-                }),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () async {
-                  //verify form validations
-                  if (_formKey.currentState!.validate()) {
-                    workoutHistory.workoutName = workoutNameController.text;
-                    workoutHistory.date = myDateTime.toString();
-                    workoutHistory.sets = int.parse(setController.text.isEmpty
-                        ? "0"
-                        : setController.text);
-                    workoutHistory.reps = int.parse(repController.text.isEmpty
-                        ? "0"
-                        : repController.text);
-                    workoutHistory.weight = double.parse(
-                        weightController.text.isEmpty
-                            ? "0"
-                            : weightController.text);
-                    workoutHistory.duration = timerController.text;
-                    workoutHistory.distance = double.parse(
-                        distanceController.text.isEmpty
-                            ? "0"
-                            : distanceController.text);
-                    workoutHistory.calories = double.parse(
-                        caloriesController.text.isEmpty
-                            ? "0"
-                            : caloriesController.text);
-                    workoutHistory.heartRate = double.parse(
-                        heartRateController.text.isEmpty
-                            ? "0"
-                            : heartRateController.text);
-                    if (!add) {
-                      //for updating existing workout history records
-                      repo.updateWorkoutHistory(workoutHistory);
-                    } else {
-                      //on add, get relevant info from the dropdown selection
-                      for (var i = 0; i < workouts.length; i++) {
-                        if (workouts[i].name == workoutNameController.text) {
-                          workoutHistory.workoutId = workouts[i].id;
-                          workoutHistory.workoutType = workouts[i].type;
-                        }
-                      }
-                      repo.saveWorkoutHistory(workoutHistory);
-                    }
-
-                    //update the workout history list, and reset the index
-                    setState(() {
-                      _workoutHistory =
-                          repo.workoutHistoryByDates(_selectedDateRange!);
-                      filterIndex = 0;
-                    });
-                    Navigator.of(context).pop();
-                  }
-                },
-                child: const Text("Save"),
-              )
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget buildWorkoutCard(BuildContext context, workoutHistory, workouts) {
-    WorkoutType? type;
-    for (var i = 0; i < workouts.length; i++) {
-      if (workoutHistory.workoutId == workouts[i].id) {
-        type = WorkoutType.values[workouts[i].type];
-      }
-    }
 
     //build a card depending on the type of workout
     switch (type) {
-      case null:
-        return const SizedBox.shrink();
       case WorkoutType.strength:
         return Container(
           margin: const EdgeInsets.all(0),
@@ -964,13 +959,25 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                   const Divider(color: Colors.white54,),
                   Container(
                     padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.weight)} LBS'),
-                        const Spacer(),
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.sets)} Sets'),
-                        const Spacer(),
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.reps)} Reps'),
+                    child: workoutHistory.sets.isNotEmpty
+                        ? ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: workoutHistory.sets.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        return Row(
+                          children: [
+                            Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].weight)} LBS'),
+                            const Spacer(),
+                            Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].reps)} Reps'),
+                          ],
+                        );
+                      }
+                    )
+                    : Row(
+                      children: const [
+                        Text('No Weight'),
+                        Spacer(),
+                        Text('No Reps'),
                       ],
                     ),
                   ),
@@ -1032,7 +1039,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     child: Row(
                       //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Heart Rate: ${Utils().getWorkoutHistoryString(workoutHistory.heartRate)}'),
+                        Text('${Utils().getWorkoutHistoryString(workoutHistory.heartRate)} Heart Rate'),
                         const Spacer(),
                         Text('${Utils().getWorkoutHistoryString(workoutHistory.calories)} Cal'),
                       ],
@@ -1079,15 +1086,27 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     ),
                   ),
                   const Divider(color: Colors.white54,),
-                  Padding(
+                  Container(
                     padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.weight)} LBS'),
-                        const Spacer(),
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.sets)} Sets'),
-                        const Spacer(),
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.reps)} Reps'),
+                    child: workoutHistory.sets.isNotEmpty
+                        ? ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: workoutHistory.sets.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Row(
+                            children: [
+                              Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].weight)} LBS'),
+                              const Spacer(),
+                              Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].reps)} Reps'),
+                            ],
+                          );
+                        }
+                    )
+                        : Row(
+                      children: const [
+                        Text('No Weight'),
+                        Spacer(),
+                        Text('No Reps'),
                       ],
                     ),
                   ),
@@ -1109,7 +1128,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                     child: Row(
                       //mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Heart Rate: ${Utils().getWorkoutHistoryString(workoutHistory.heartRate)}'),
+                        Text('${Utils().getWorkoutHistoryString(workoutHistory.heartRate)} Heart Rate'),
                         const Spacer(),
                         Text('${Utils().getWorkoutHistoryString(workoutHistory.calories)} Cal'),
                       ],

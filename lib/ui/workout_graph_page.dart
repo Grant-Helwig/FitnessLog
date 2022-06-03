@@ -1,4 +1,6 @@
 
+import 'dart:math';
+
 import 'package:draw_graph/draw_graph.dart';
 import 'package:draw_graph/models/feature.dart';
 import 'package:flutter/material.dart';
@@ -84,7 +86,7 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
             future: workoutHistory,
             builder: (context, projectSnap) {
               Widget? graphs =
-              _graphFeaturesByWorkoutAndDate(projectSnap.data, context);
+                _graphFeaturesByWorkoutAndDate(projectSnap.data, context);
               if (projectSnap.hasData && graphs != null && projectSnap.data!.length > 1) {
                 return graphs;
               } else {
@@ -143,22 +145,42 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
           List<double> dataRep = [];
 
           //graph only goes from 0-1 so we need to use fractions with the max values
-          double highestWeight =
-              workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
+          double highestWeight = 0;
           double highestSet = workoutHistory
-              .reduce((a, b) => a.sets > b.sets ? a : b)
-              .sets
+              .reduce((a, b) => a.sets.length > b.sets.length ? a : b)
+              .sets.length
               .toDouble();
-          double highestRep = workoutHistory
-              .reduce((a, b) => a.reps > b.reps ? a : b)
-              .reps
-              .toDouble();
+          double highestRep = 0;
+          for(var history in workoutHistory){
+            if(history.sets.isNotEmpty){
+              double accumReps = 0;
+              double accumWeights = 0;
+              for(var set in history.sets){
+                accumReps += set.reps;
+                accumWeights += set.weight;
+              }
+              highestWeight = max(highestWeight, accumWeights / history.sets.length);
+              highestRep = max(highestRep, accumReps / history.sets.length);
+            }
+          }
 
           //set the fraction values and the date values
           for (var history in workoutHistory) {
-            dataWeight.add(history.weight / highestWeight);
-            dataSet.add(history.sets.toDouble() / highestSet);
-            dataRep.add(history.reps.toDouble() / highestRep);
+            if(history.sets.isNotEmpty){
+              double accumReps = 0;
+              double accumWeights = 0;
+              for(var set in history.sets){
+                accumReps += set.reps;
+                accumWeights += set.weight;
+              }
+              dataWeight.add((accumWeights / history.sets.length) / highestWeight);
+              dataSet.add(history.sets.length / highestSet);
+              dataRep.add((accumReps / history.sets.length) / highestRep);
+            } else {
+              dataWeight.add(0);
+              dataSet.add(0);
+              dataRep.add(0);
+            }
 
             dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
 
@@ -180,7 +202,7 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text("Max Weight $highestWeight LBS"),
+                  child: Text("Average Weight Per Set $highestWeight LBS"),
                 ),
               ),
               SingleChildScrollView(
@@ -230,7 +252,7 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text("Max Reps $highestRep"),
+                  child: Text("Average Reps Per Set $highestRep"),
                 ),
               ),
               SingleChildScrollView(
@@ -440,8 +462,6 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
           );
         case WorkoutType.both:
           List<double> dataWeight = [];
-          double highestWeight =
-              workoutHistory.reduce((a, b) => a.weight > b.weight ? a : b).weight;
 
           List<double> dataDuration = [];
           double highestDuration =
@@ -460,27 +480,60 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
 
           List<double> dataSet = [];
           List<double> dataRep = [];
+          // double highestSet = workoutHistory
+          //     .reduce((a, b) => a.sets > b.sets ? a : b)
+          //     .sets
+          //     .toDouble();
+          // double highestRep = workoutHistory
+          //     .reduce((a, b) => a.reps > b.reps ? a : b)
+          //     .reps
+          //     .toDouble();
+
+          double highestWeight = 0;
           double highestSet = workoutHistory
-              .reduce((a, b) => a.sets > b.sets ? a : b)
-              .sets
+              .reduce((a, b) => a.sets.length > b.sets.length ? a : b)
+              .sets.length
               .toDouble();
-          double highestRep = workoutHistory
-              .reduce((a, b) => a.reps > b.reps ? a : b)
-              .reps
-              .toDouble();
+          double highestRep = 0;
+          for(var history in workoutHistory){
+            if(history.sets.isNotEmpty){
+              double accumReps = 0;
+              double accumWeights = 0;
+              for(var set in history.sets){
+                accumReps += set.reps;
+                accumWeights += set.weight;
+              }
+              highestWeight = max(highestWeight, accumWeights / history.sets.length);
+              highestRep = max(highestRep, accumReps / history.sets.length);
+            }
+          }
 
           for (var history in workoutHistory) {
-            dataWeight.add(history.weight / highestWeight);
-            dataDuration.add(Utils().parseDuration(history.duration).inSeconds / highestDuration);
+            if(history.sets.isNotEmpty){
+              double accumReps = 0;
+              double accumWeights = 0;
+              for(var set in history.sets){
+                accumReps += set.reps;
+                accumWeights += set.weight;
+              }
+              dataWeight.add((accumWeights / history.sets.length) / highestWeight);
+              dataSet.add(history.sets.length / highestSet);
+              dataRep.add((accumReps / history.sets.length) / highestRep);
+            } else {
+              dataWeight.add(0);
+              dataSet.add(0);
+              dataRep.add(0);
+            }
 
+            dataDuration.add(Utils().parseDuration(history.duration).inSeconds / highestDuration);
 
             dataDistance.add(history.distance / highestDistance);
             dataCalories.add(history.calories / highestCalories);
             dataHeartRate.add(history.heartRate / highestHeartRate);
 
 
-            dataSet.add(history.sets.toDouble() / highestSet);
-            dataRep.add(history.reps.toDouble() / highestRep);
+            //dataSet.add(history.sets.toDouble() / highestSet);
+            //dataRep.add(history.reps.toDouble() / highestRep);
 
             dates.add(DateFormat("MM/dd").format(DateTime.parse(history.date)));
             compressedDates.add("");
@@ -509,7 +562,7 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text("Max Weight $highestWeight LBS"),
+                  child: Text("Average Weight Per Set $highestWeight LBS"),
                 ),
               ),
               SingleChildScrollView(
@@ -559,7 +612,7 @@ class _WorkoutGraphsState extends State<WorkoutGraphs> {
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text("Max Reps $highestRep"),
+                  child: Text("Average Reps Per Set $highestRep"),
                 ),
               ),
               SingleChildScrollView(

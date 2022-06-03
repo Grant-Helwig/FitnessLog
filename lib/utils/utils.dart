@@ -36,7 +36,7 @@ class Utils {
 
   String getWorkoutHistoryString(dynamic number){
     if(number is int || number is double){
-      return number == 0 ? "" : number.toString();
+      return number == 0 ? "No" : number.toString();
     } else {
       return "0";
     }

@@ -4,6 +4,7 @@ import 'package:hey_workout/dao/workout_dao.dart';
 import '../model/routine.dart';
 import '../model/routine_entry.dart';
 import '../model/weight.dart';
+import '../model/set.dart';
 import '../model/workout.dart';
 import '../model/workout_history.dart';
 
@@ -22,9 +23,9 @@ class WorkoutRepository {
   Future<List<Workout>?> readAllWorkoutsByRoutine (int _id)  => workoutDao.workoutsByRoutine(_id);
   Future<List<Workout>?> readAllWorkoutsDropdown () => workoutDao.readAllWorkoutsDropdown();
 
-  Future saveWorkoutHistory (WorkoutHistory workoutHistory) => workoutDao.saveWorkoutHistory(workoutHistory);
+  Future<WorkoutHistory> saveWorkoutHistory (WorkoutHistory workoutHistory) => workoutDao.saveWorkoutHistory(workoutHistory);
   Future deleteWorkoutHistory(int _id) => workoutDao.deleteWorkoutHistory(_id);
-  Future updateWorkoutHistory(WorkoutHistory workoutHistory) => workoutDao.updateWorkoutHistory(workoutHistory);
+  Future<WorkoutHistory> updateWorkoutHistory(WorkoutHistory workoutHistory) => workoutDao.updateWorkoutHistory(workoutHistory);
   Future<List<WorkoutHistory>?> readAllWorkoutHistory () => workoutDao.readAllWorkoutHistory();
   Future<List<WorkoutHistory>?> workoutHistoryByWorkout (int _id) => workoutDao.workoutHistoryByWorkout(_id);
   Future<WorkoutHistory?> mostRecentWorkoutHistoryByWorkout (int _id) => workoutDao.mostRecentWorkoutHistoryByWorkout(_id);
@@ -55,4 +56,9 @@ class WorkoutRepository {
   Future updateWeight (Weight weight) => workoutDao.updateWeight(weight);
   Future<List<Weight>?> readAllWeights() => workoutDao.readAllWeights();
   Future<List<Weight>?> readAllWeightsByDate(DateTimeRange range) => workoutDao.weightsByDates(range);
+
+  Future saveSet (WorkoutSet set) => workoutDao.saveSet(set);
+  Future deleteSet (int _id) => workoutDao.deleteSet(_id);
+  Future updateSet (WorkoutSet set) => workoutDao.updateSet(set);
+  Future<List<WorkoutSet>?> readAllSets(int _id) => workoutDao.readAllSets(_id);
 }

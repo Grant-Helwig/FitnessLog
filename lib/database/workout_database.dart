@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../model/routine.dart';
 import '../model/routine_entry.dart';
+import '../model/set.dart';
 import '../model/weight.dart';
 import '../model/workout.dart';
 import '../model/workout_history.dart';
@@ -36,6 +37,10 @@ const String columnRoutineId = 'routineId';
 const String columnOrder = "entryOrder";
 //weight table
 const String tableWeight = 'Weight';
+//set table
+const String tableWorkoutHistorySet = 'WorkoutHistorySet';
+const String columnWorkoutHistoryId = 'workoutHistoryId';
+const String columnSetOrder = 'setOrder';
 
 class DatabaseHelper {
   // This is the actual database filename that is saved in the docs directory.
@@ -96,13 +101,10 @@ class DatabaseHelper {
                 $columnWorkoutType INTEGER NOT NULL,
                 $columnWorkoutId INTEGER NOT NULL,
                 $columnDate TEXT NOT NULL,
-                $columnWeight DOUBLE NOT NULL,
                 $columnDuration TEXT NOT NULL,
                 $columnDistance DOUBLE NOT NULL,
                 $columnCalories DOUBLE NOT NULL,
                 $columnHeartRate DOUBLE NOT NULL,
-                $columnSets INTEGER NOT NULL,
-                $columnReps INTEGER NOT NULL,
                 FOREIGN KEY($columnWorkoutId) REFERENCES $tableWorkout($columnId)
               )
               ''');
@@ -136,9 +138,88 @@ class DatabaseHelper {
                 $columnDate TEXT NOT NULL
               )
               ''');
+
+    await db.execute('''
+              CREATE TABLE $tableWorkoutHistorySet (
+                $columnId INTEGER PRIMARY KEY,
+                $columnWorkoutHistoryId INTEGER NOT NULL,
+                $columnReps INTEGER NOT NULL,
+                $columnSetOrder INTEGER NOT NULL,
+                $columnWeight DOUBLE NOT NULL,
+                FOREIGN KEY($columnWorkoutHistoryId) REFERENCES $tableWorkoutHistory($columnId)
+              )
+              ''');
   }
 
   // Database helper methods
+
+  Future<int> insertSet(WorkoutSet set) async {
+    Database? db = await database;
+    int id = await db!.insert(tableWorkoutHistorySet, set.toMap());
+    return id;
+  }
+
+  Future<WorkoutSet?> querySet(int id) async {
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableWorkoutHistorySet,
+        columns: [
+          columnId,
+          columnWorkoutHistoryId,
+          columnReps,
+          columnWeight,
+          columnSetOrder
+        ],
+        where: '$columnId = ?',
+        whereArgs: [id]);
+    if (maps.isNotEmpty) {
+      WorkoutSet temp = WorkoutSet.fromMap(maps.first);
+      //temp.workoutHistory = await queryWorkoutHistory(temp.workoutHistoryId);
+      return temp;
+    }
+    return null;
+  }
+
+  Future<List<WorkoutSet>?> queryAllSetsByWorkoutHistory(int id) async {
+    // Database? db = await database;
+    // List<Map> maps = await db!.query(tableWorkoutHistorySet);
+
+    Database? db = await database;
+    List<Map> maps = await db!.query(tableWorkoutHistorySet,
+        columns: [
+          columnId,
+          columnWorkoutHistoryId,
+          columnReps,
+          columnWeight,
+          columnSetOrder
+        ],
+        where: '$columnWorkoutHistoryId = ?',
+        whereArgs: [id]);
+
+    if (maps.isNotEmpty) {
+      List<WorkoutSet> sets = [];
+      for (var map in maps) {
+        WorkoutSet temp = WorkoutSet.fromMap(map);
+        //temp.workoutHistory = await queryWorkoutHistory(temp.workoutHistoryId);
+        sets.add(temp);
+      }
+      return sets;
+    }
+    return null;
+  }
+
+  Future<int> deleteSet(int id) async {
+    Database? db = await database;
+    return await db!
+        .delete(tableWorkoutHistorySet, where: '$columnId = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateSet(WorkoutSet set) async {
+    Database? db = await database;
+    return await db!.update(tableWeight, set.toMap(),
+        where: '$columnId = ?', whereArgs: [set.id]);
+  }
+
+  ////
 
   Future<int> insertWeight(Weight weight) async {
     Database? db = await database;
@@ -219,13 +300,10 @@ class DatabaseHelper {
           columnWorkoutName,
           columnWorkoutType,
           columnDate,
-          columnWeight,
           columnDuration,
           columnDistance,
           columnCalories,
           columnHeartRate,
-          columnSets,
-          columnReps,
           columnWorkoutId
         ],
         where: '$columnId = ?',
@@ -295,13 +373,10 @@ class DatabaseHelper {
           columnWorkoutName,
           columnWorkoutType,
           columnDate,
-          columnWeight,
           columnDuration,
           columnDistance,
           columnCalories,
           columnHeartRate,
-          columnSets,
-          columnReps,
           columnWorkoutId
         ],
         where: '$columnWorkoutId = ?',
