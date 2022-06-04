@@ -34,11 +34,11 @@ class Utils {
   //   }
   // }
 
-  String getWorkoutHistoryString(dynamic number){
+  String? getWorkoutHistoryString(dynamic number){
     if(number is int || number is double){
-      return number == 0 ? "No" : number.toString();
+      return number == 0 ? null : number.toString();
     } else {
-      return "0";
+      return null;
     }
   }
 
@@ -69,6 +69,9 @@ class Utils {
         // You get your duration here
         _duration = Duration(hours: picker.getSelectedValues()[0], minutes: picker.getSelectedValues()[1], seconds: picker.getSelectedValues()[2]);
       },
+      onCancel: (){
+        _duration = defaultDuration;
+      }
     ).showDialog(context);
     return _duration;
   }

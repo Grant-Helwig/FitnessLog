@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:duration/duration.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hey_workout/bloc/workout_bloc.dart';
@@ -918,227 +919,117 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
   Widget buildWorkoutCard(BuildContext context, WorkoutHistory workoutHistory) {
     WorkoutType type = WorkoutType.values[workoutHistory.workoutType];
 
-
+    List<Widget> workoutItems = displayList(workoutHistory);
     //build a card depending on the type of workout
-    switch (type) {
-      case WorkoutType.strength:
-        return Container(
-          margin: const EdgeInsets.all(0),
-          child: Card(
-            child: ListTile(
-              onTap: () async {
-                //await addWorkoutHistoryForm(context, false, workoutHistory, true);
-                if(workout == null){
-                  Workout? tempWorkout = await repo.readWorkout(workoutHistory.workoutId);
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              WorkoutProfile(workout: tempWorkout!)));
-                }
-              },
-              onLongPress: () async {
-                await updateOptions(workoutHistory);
-              },
-              title: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Text('${workoutHistory.workoutName} '),
-                        const Spacer(),
-                        Text(
-                          DateFormat('yyyy/MM/dd hh:mm a')
-                              .format(DateTime.parse(workoutHistory.date)),
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                      ],
+    return Container(
+      margin: const EdgeInsets.all(0),
+      child: Card(
+        child: ListTile(
+          onTap: () async {
+            //await addWorkoutHistoryForm(context, false, workoutHistory, true);
+            if(workout == null){
+              Workout? tempWorkout = await repo.readWorkout(workoutHistory.workoutId);
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          WorkoutProfile(workout: tempWorkout!)));
+            }
+          },
+          onLongPress: () async {
+            await updateOptions(workoutHistory);
+          },
+          title: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Text('${workoutHistory.workoutName} '),
+                    const Spacer(),
+                    Text(
+                      DateFormat('yyyy/MM/dd hh:mm a')
+                          .format(DateTime.parse(workoutHistory.date)),
+                      style: const TextStyle(fontSize: 10),
                     ),
-                  ),
-                  const Divider(color: Colors.white54,),
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: workoutHistory.sets.isNotEmpty
-                        ? ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: workoutHistory.sets.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return Row(
+                  ],
+                ),
+              ),
+              const Divider(color: Colors.white54,),
+              Container(
+                padding: const EdgeInsets.only(left: 8, right: 8),
+                child: workoutHistory.sets.isNotEmpty
+                    ? ListView.builder(
+                    primary: false,
+                    shrinkWrap: true,
+                    itemCount: workoutHistory.sets.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return AspectRatio(
+                        aspectRatio: MediaQuery.of(context).size.width /
+                            (MediaQuery.of(context).size.height / 24),
+                        child: Row(
                           children: [
-                            Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].weight)} LBS'),
+                            Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].weight) ?? "No"} LBS'),
                             const Spacer(),
-                            Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].reps)} Reps'),
+                            Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].reps) ?? "No"} Reps'),
                           ],
-                        );
-                      }
-                    )
-                    : Row(
-                      children: const [
-                        Text('No Weight'),
-                        Spacer(),
-                        Text('No Reps'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      case WorkoutType.cardio:
-        return Container(
-          margin: const EdgeInsets.all(0),
-          child: Card(
-            child: ListTile(
-              onTap: () async {
-                //await addWorkoutHistoryForm(context, false, workoutHistory, true);
-                if(workout == null){
-                  Workout? tempWorkout = await repo.readWorkout(workoutHistory.workoutId);
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              WorkoutProfile(workout: tempWorkout!)));
-                }
-              },
-              onLongPress: () async {
-                await updateOptions(workoutHistory);
-              },
-              title: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Text('${workoutHistory.workoutName} '),
-                        const Spacer(),
-                        Text(
-                          DateFormat('yyyy/MM/dd hh:mm a')
-                              .format(DateTime.parse(workoutHistory.date)),
-                          style: const TextStyle(fontSize: 10),
                         ),
-                      ],
-                    ),
-                  ),
-                  const Divider(color: Colors.white54,),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      //mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Duration: ${workoutHistory.duration}'),
-                        const Spacer(),
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.distance)} Mi'),
-                      ],
-                    ),
-                  ),
-                  const Divider(color: Colors.white54,),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      //mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.heartRate)} Heart Rate'),
-                        const Spacer(),
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.calories)} Cal'),
-                      ],
-                    ),
-                  ),
-                ],
+                      );
+                    }
+                )
+                    : SizedBox.shrink()
               ),
-            ),
+              workoutHistory.sets.isNotEmpty
+                  ? const Divider(color: Colors.white54,) : SizedBox.shrink(),
+              workoutItems.isNotEmpty
+                  ? Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    primary: false,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      childAspectRatio: MediaQuery.of(context).size.width /
+                          (MediaQuery.of(context).size.height / 12),
+                      crossAxisCount: 2,
+                    ),
+                    itemCount: workoutItems.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return workoutItems[index];
+                    },
+                  )
+              ) : SizedBox.shrink(),
+            ],
           ),
-        );
-      case WorkoutType.both:
-        return Container(
-          margin: const EdgeInsets.all(0),
-          child: Card(
-            child: ListTile(
-              onTap: () async {
-                //await addWorkoutHistoryForm(context, false, workoutHistory, true);
-                if(workout == null){
-                  Workout? tempWorkout = await repo.readWorkout(workoutHistory.workoutId);
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              WorkoutProfile(workout: tempWorkout!)));
-                }
-              },
-              onLongPress: () async {
-                await updateOptions(workoutHistory);
-              },
-              title: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Text('${workoutHistory.workoutName} '),
-                        const Spacer(),
-                        Text(
-                          DateFormat('yyyy/MM/dd hh:mm a')
-                              .format(DateTime.parse(workoutHistory.date)),
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(color: Colors.white54,),
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: workoutHistory.sets.isNotEmpty
-                        ? ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: workoutHistory.sets.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Row(
-                            children: [
-                              Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].weight)} LBS'),
-                              const Spacer(),
-                              Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].reps)} Reps'),
-                            ],
-                          );
-                        }
-                    )
-                        : Row(
-                      children: const [
-                        Text('No Weight'),
-                        Spacer(),
-                        Text('No Reps'),
-                      ],
-                    ),
-                  ),
-                  const Divider(color: Colors.white54,),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      //mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Duration: ${workoutHistory.duration}'),
-                        const Spacer(),
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.distance)} Mi'),
-                      ],
-                    ),
-                  ),
-                  const Divider(color: Colors.white54,),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      //mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.heartRate)} Heart Rate'),
-                        const Spacer(),
-                        Text('${Utils().getWorkoutHistoryString(workoutHistory.calories)} Cal'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        ),
+      ),
+    );
+  }
+
+  List<Widget> displayList(WorkoutHistory workoutHistory){
+    List<Widget> historyList = [];
+    var heartRate = Utils().getWorkoutHistoryString(workoutHistory.heartRate);
+    var calories = Utils().getWorkoutHistoryString(workoutHistory.calories);
+    var distance = Utils().getWorkoutHistoryString(workoutHistory.distance);
+    log(workoutHistory.duration);
+    var duration = workoutHistory.duration == "00:00:00.00" ? null :  workoutHistory.duration;
+
+
+    if(heartRate != null){
+      historyList.add(Text('$heartRate BPM', textAlign: historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,));
     }
+
+    if(calories != null){
+      historyList.add(Text('$calories Calories', textAlign: historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,));
+    }
+
+    if(distance != null){
+      historyList.add(Text('$distance Mi', textAlign: historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,));
+    }
+
+    if(duration != null){
+      historyList.add(Text('Duration: $duration', textAlign: historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,));
+    }
+
+    return historyList;
   }
 }
