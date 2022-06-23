@@ -16,7 +16,7 @@ import '../utils/utils.dart';
 
 class ExecuteWorkout extends StatefulWidget {
   final Routine? routine;
-  final WorkoutHistory? history;
+  final List<WorkoutHistory>? history;
   final List<Workout>? workouts;
   const ExecuteWorkout({Key? key, required this.workouts, this.routine, this.history}) : super(key: key);
 
@@ -37,7 +37,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
   late List<Workout>? workouts;
 
   late Routine? routine;
-  late WorkoutHistory? history;
+  late List<WorkoutHistory>? history;
   Duration stopWatchDuration = const Duration();
   late StopWatchTimer stopWatchTimer = StopWatchTimer(
     onChange: (value) {
@@ -211,7 +211,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                           if(workouts != null) {
                             formKeys.add(GlobalKey<FormState>());
                             cardsCompleted.add(false);
-                            return executeWorkoutCard(workouts![index], index);
+                            return executeWorkoutCard(workouts![index], history != null ? (history!.length > index ? history![index] : null): null, index);
                           } else {
                             return const Align(
                               alignment: Alignment.center,
@@ -238,7 +238,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
     );
   }
 
-  Widget executeWorkoutCard(Workout workout, int index) {
+  Widget executeWorkoutCard(Workout workout, WorkoutHistory? history, int index) {
     List<TextEditingController> weightControllers = [TextEditingController()];
     TextEditingController timerController = TextEditingController(text: Utils().printDuration(const Duration()));//Duration().toString().substring(0, Duration().toString().indexOf('.')));
     List<TextEditingController> repControllers = [TextEditingController()];
@@ -256,6 +256,7 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
     repo.mostRecentWorkoutHistoryByWorkout(workout.id);
 
     if(history != null){
+      log("updating item");
         recentHistory =   Future.value(history);
     } else {
       recentHistory =
@@ -792,12 +793,12 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                           : heartRateController.text);
                                       WorkoutHistory newHistory;
                                       if(history != null){
-                                        tempWorkoutHistory.id = history!.id;
+                                        tempWorkoutHistory.id = history.id;
                                         await repo.updateWorkoutHistory(tempWorkoutHistory);
-                                        newHistory = history!;
+                                        newHistory = history;
                                         //List<WorkoutSet>? tempSets = await repo.readAllSets(history!.id);
                                         //if(tempSets != null){
-                                          for(var set in history!.sets){
+                                          for(var set in history.sets){
                                             log("delete set id");
                                             log(set.id.toString());
                                             await repo.deleteSet(set.id);

@@ -298,7 +298,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                         context,
                         MaterialPageRoute(
                             builder: (context) =>
-                                ExecuteWorkout(workouts: [workout!], history: workoutHistory)));
+                                ExecuteWorkout(workouts: [workout!], history: [workoutHistory])));
                     setState(() {
                       _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
                     });
