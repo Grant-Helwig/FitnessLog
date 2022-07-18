@@ -370,7 +370,20 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                                             }
                                                           }
                                                           if(!hasValue){
-                                                            return "Fill out a value";
+                                                            //return "Fill out a value";
+                                                            if(workout.type == WorkoutType.both.index){
+                                                              if(timerController.text == "00:00:00.00" &&
+                                                                  distanceController.text.isEmpty &&
+                                                                  caloriesController.text.isEmpty &&
+                                                                  heartRateController.text.isEmpty){
+                                                                return "Must Fill Out a Field";
+                                                              }
+
+                                                            }
+                                                            else if(workout.type == WorkoutType.strength.index){
+                                                              return "Must Fill Out a Field";
+                                                            }
+
                                                           }
                                                           return null;
                                                         },
@@ -395,7 +408,20 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                                               }
                                                           }
                                                           if(!hasValue){
-                                                            return "Fill out a value";
+                                                            //return "Fill out a value";
+                                                            if(workout.type == WorkoutType.both.index){
+                                                              if(timerController.text == "00:00:00.00" &&
+                                                                  distanceController.text.isEmpty &&
+                                                                  caloriesController.text.isEmpty &&
+                                                                  heartRateController.text.isEmpty){
+                                                                return "Must Fill Out a Field";
+                                                              }
+
+                                                            }
+                                                            else if(workout.type == WorkoutType.strength.index){
+                                                              return "Must Fill Out a Field";
+                                                            }
+
                                                           }
                                                           return null;
                                                         },
@@ -418,10 +444,12 @@ class _ExecuteWorkoutState extends State<ExecuteWorkout> {
                                       children: [
                                         IconButton(
                                             onPressed: () {
-                                              setState((){
-                                                repControllers.removeLast();
-                                                weightControllers.removeLast();
-                                              });
+                                              if(workout.type != WorkoutType.strength.index || repControllers.length > 1){
+                                                setState((){
+                                                  repControllers.removeLast();
+                                                  weightControllers.removeLast();
+                                                });
+                                              }
                                             },
                                             icon: const Icon(UniconsLine.minus_circle)
                                         ),

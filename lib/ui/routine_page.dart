@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hey_workout/repository/workout_repository.dart';
 import 'package:hey_workout/ui/routine_profile_page.dart';
 import 'package:intl/intl.dart';
-import 'package:modal_progress_hud/modal_progress_hud.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
 import '../model/routine.dart';
 

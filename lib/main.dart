@@ -2,6 +2,7 @@
 import 'package:duration/duration.dart';
 import 'package:flutter_picker/flutter_picker.dart';
 import 'package:hey_workout/ui/home_page.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:unicons/unicons.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
@@ -9,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:developer';
 import 'database_helper.dart';
-import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:draw_graph/draw_graph.dart';
 import 'package:draw_graph/models/feature.dart';
 //import 'package:duration_picker/duration_picker/duration_picker.dart';
