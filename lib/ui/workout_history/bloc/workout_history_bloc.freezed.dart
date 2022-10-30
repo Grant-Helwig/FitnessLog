@@ -523,24 +523,24 @@ mixin _$WorkoutHistoryState {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
-    required TResult Function(DateTimeRange dateRange, List<Routine>? routines,
-            Routine? selectedRoutine, List<WorkoutHistory> workoutHistory)
+    required TResult Function(DateTimeRange dateRange, List<Routine> routines,
+            Routine selectedRoutine, List<WorkoutHistory> workoutHistory)
         loaded,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
-    TResult? Function(DateTimeRange dateRange, List<Routine>? routines,
-            Routine? selectedRoutine, List<WorkoutHistory> workoutHistory)?
+    TResult? Function(DateTimeRange dateRange, List<Routine> routines,
+            Routine selectedRoutine, List<WorkoutHistory> workoutHistory)?
         loaded,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
-    TResult Function(DateTimeRange dateRange, List<Routine>? routines,
-            Routine? selectedRoutine, List<WorkoutHistory> workoutHistory)?
+    TResult Function(DateTimeRange dateRange, List<Routine> routines,
+            Routine selectedRoutine, List<WorkoutHistory> workoutHistory)?
         loaded,
     required TResult orElse(),
   }) =>
@@ -621,8 +621,8 @@ class _$Initial implements Initial {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
-    required TResult Function(DateTimeRange dateRange, List<Routine>? routines,
-            Routine? selectedRoutine, List<WorkoutHistory> workoutHistory)
+    required TResult Function(DateTimeRange dateRange, List<Routine> routines,
+            Routine selectedRoutine, List<WorkoutHistory> workoutHistory)
         loaded,
   }) {
     return initial();
@@ -632,8 +632,8 @@ class _$Initial implements Initial {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
-    TResult? Function(DateTimeRange dateRange, List<Routine>? routines,
-            Routine? selectedRoutine, List<WorkoutHistory> workoutHistory)?
+    TResult? Function(DateTimeRange dateRange, List<Routine> routines,
+            Routine selectedRoutine, List<WorkoutHistory> workoutHistory)?
         loaded,
   }) {
     return initial?.call();
@@ -643,8 +643,8 @@ class _$Initial implements Initial {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
-    TResult Function(DateTimeRange dateRange, List<Routine>? routines,
-            Routine? selectedRoutine, List<WorkoutHistory> workoutHistory)?
+    TResult Function(DateTimeRange dateRange, List<Routine> routines,
+            Routine selectedRoutine, List<WorkoutHistory> workoutHistory)?
         loaded,
     required TResult orElse(),
   }) {
@@ -697,8 +697,8 @@ abstract class _$$LoadedCopyWith<$Res> {
   @useResult
   $Res call(
       {DateTimeRange dateRange,
-      List<Routine>? routines,
-      Routine? selectedRoutine,
+      List<Routine> routines,
+      Routine selectedRoutine,
       List<WorkoutHistory> workoutHistory});
 }
 
@@ -713,8 +713,8 @@ class __$$LoadedCopyWithImpl<$Res>
   @override
   $Res call({
     Object? dateRange = null,
-    Object? routines = freezed,
-    Object? selectedRoutine = freezed,
+    Object? routines = null,
+    Object? selectedRoutine = null,
     Object? workoutHistory = null,
   }) {
     return _then(_$Loaded(
@@ -722,14 +722,14 @@ class __$$LoadedCopyWithImpl<$Res>
           ? _value.dateRange
           : dateRange // ignore: cast_nullable_to_non_nullable
               as DateTimeRange,
-      freezed == routines
+      null == routines
           ? _value._routines
           : routines // ignore: cast_nullable_to_non_nullable
-              as List<Routine>?,
-      freezed == selectedRoutine
+              as List<Routine>,
+      null == selectedRoutine
           ? _value.selectedRoutine
           : selectedRoutine // ignore: cast_nullable_to_non_nullable
-              as Routine?,
+              as Routine,
       null == workoutHistory
           ? _value._workoutHistory
           : workoutHistory // ignore: cast_nullable_to_non_nullable
@@ -741,24 +741,22 @@ class __$$LoadedCopyWithImpl<$Res>
 /// @nodoc
 
 class _$Loaded implements Loaded {
-  const _$Loaded(this.dateRange, final List<Routine>? routines,
+  const _$Loaded(this.dateRange, final List<Routine> routines,
       this.selectedRoutine, final List<WorkoutHistory> workoutHistory)
       : _routines = routines,
         _workoutHistory = workoutHistory;
 
   @override
   final DateTimeRange dateRange;
-  final List<Routine>? _routines;
+  final List<Routine> _routines;
   @override
-  List<Routine>? get routines {
-    final value = _routines;
-    if (value == null) return null;
+  List<Routine> get routines {
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(value);
+    return EqualUnmodifiableListView(_routines);
   }
 
   @override
-  final Routine? selectedRoutine;
+  final Routine selectedRoutine;
   final List<WorkoutHistory> _workoutHistory;
   @override
   List<WorkoutHistory> get workoutHistory {
@@ -803,8 +801,8 @@ class _$Loaded implements Loaded {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
-    required TResult Function(DateTimeRange dateRange, List<Routine>? routines,
-            Routine? selectedRoutine, List<WorkoutHistory> workoutHistory)
+    required TResult Function(DateTimeRange dateRange, List<Routine> routines,
+            Routine selectedRoutine, List<WorkoutHistory> workoutHistory)
         loaded,
   }) {
     return loaded(dateRange, routines, selectedRoutine, workoutHistory);
@@ -814,8 +812,8 @@ class _$Loaded implements Loaded {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
-    TResult? Function(DateTimeRange dateRange, List<Routine>? routines,
-            Routine? selectedRoutine, List<WorkoutHistory> workoutHistory)?
+    TResult? Function(DateTimeRange dateRange, List<Routine> routines,
+            Routine selectedRoutine, List<WorkoutHistory> workoutHistory)?
         loaded,
   }) {
     return loaded?.call(dateRange, routines, selectedRoutine, workoutHistory);
@@ -825,8 +823,8 @@ class _$Loaded implements Loaded {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
-    TResult Function(DateTimeRange dateRange, List<Routine>? routines,
-            Routine? selectedRoutine, List<WorkoutHistory> workoutHistory)?
+    TResult Function(DateTimeRange dateRange, List<Routine> routines,
+            Routine selectedRoutine, List<WorkoutHistory> workoutHistory)?
         loaded,
     required TResult orElse(),
   }) {
@@ -871,13 +869,13 @@ class _$Loaded implements Loaded {
 abstract class Loaded implements WorkoutHistoryState {
   const factory Loaded(
       final DateTimeRange dateRange,
-      final List<Routine>? routines,
-      final Routine? selectedRoutine,
+      final List<Routine> routines,
+      final Routine selectedRoutine,
       final List<WorkoutHistory> workoutHistory) = _$Loaded;
 
   DateTimeRange get dateRange;
-  List<Routine>? get routines;
-  Routine? get selectedRoutine;
+  List<Routine> get routines;
+  Routine get selectedRoutine;
   List<WorkoutHistory> get workoutHistory;
   @JsonKey(ignore: true)
   _$$LoadedCopyWith<_$Loaded> get copyWith =>

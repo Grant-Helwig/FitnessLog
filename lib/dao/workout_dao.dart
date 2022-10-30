@@ -10,13 +10,10 @@ import '../model/workout.dart';
 import '../model/set.dart';
 import '../model/workout_history.dart';
 
-
-
 class WorkoutDao {
   final dbHelper = DatabaseHelper.instance;
 
   saveWorkout(Workout workout) async {
-
     int id = await dbHelper.insertWorkout(workout);
     workout.id = id;
 
@@ -24,15 +21,12 @@ class WorkoutDao {
   }
 
   deleteWorkout(int _id) async {
-    
-
     int id = await dbHelper.deleteWorkout(_id);
 
     log('deleted row: $id');
   }
 
   updateWorkout(Workout workout) async {
-    
     log('updating row: ${workout.id.toString()}');
     int id = await dbHelper.updateWorkout(workout);
 
@@ -40,7 +34,6 @@ class WorkoutDao {
   }
 
   Future<bool> workoutNameExists(String name) async {
-    
     List<Workout>? workouts = await dbHelper.queryAllWorkouts();
     if (workouts != null) {
       for (var workout in workouts) {
@@ -55,7 +48,6 @@ class WorkoutDao {
   }
 
   Future<bool> routineNameExists(String name) async {
-    
     List<Routine>? routines = await dbHelper.queryAllRoutines();
     if (routines != null) {
       for (var routine in routines) {
@@ -70,7 +62,6 @@ class WorkoutDao {
   }
 
   Future<Workout?> readWorkout(int rowId) async {
-    
     Workout? workout = await dbHelper.queryWorkout(rowId);
     if (workout == null) {
       log('read row $rowId: empty');
@@ -82,27 +73,28 @@ class WorkoutDao {
   }
 
   Future<List<Workout>?> readAllWorkouts() async {
-    
     List<Workout>? workouts = await dbHelper.queryAllWorkouts();
     if (workouts == null) {
       log('read row empty');
       return null;
     } else {
-      workouts.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      workouts
+          .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       return workouts;
     }
   }
 
   Future<List<Workout>?> readAllWorkoutsNameSearch(String search) async {
-    
     List<Workout>? workouts = await dbHelper.queryAllWorkouts();
     if (workouts == null) {
       log('read row empty');
       return null;
     } else {
-      List<Workout> filteredWorkouts =
-      workouts.where((element) => element.name.toLowerCase().contains(search)).toList();
-      filteredWorkouts.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      List<Workout> filteredWorkouts = workouts
+          .where((element) => element.name.toLowerCase().contains(search))
+          .toList();
+      filteredWorkouts
+          .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       return filteredWorkouts;
     }
   }
@@ -115,15 +107,12 @@ class WorkoutDao {
   }
 
   deleteRoutine(int _id) async {
-    
-
     int id = await dbHelper.deleteRoutine(_id);
 
     log('deleted row: $id');
   }
 
   updateRoutine(Routine routine) async {
-    
     log('updating row: ${routine.id.toString()}');
     int id = await dbHelper.updateRoutine(routine);
 
@@ -131,7 +120,6 @@ class WorkoutDao {
   }
 
   Future<List<Routine>?> readAllRoutines() async {
-    
     List<Routine>? routines = await dbHelper.queryAllRoutines();
     if (routines == null) {
       log('read row empty');
@@ -143,7 +131,6 @@ class WorkoutDao {
   }
 
   saveRoutineEntry(RoutineEntry routineEntry) async {
-    
     int id = await dbHelper.insertRoutineEntry(routineEntry);
     routineEntry.id = id;
 
@@ -151,15 +138,12 @@ class WorkoutDao {
   }
 
   deleteRoutineEntry(int _id) async {
-    
-
     int id = await dbHelper.deleteRoutineEntry(_id);
 
     log('deleted row: $id');
   }
 
   updateRoutineEntry(RoutineEntry routineEntry) async {
-    
     log('updating row: ${routineEntry.id.toString()}');
     int id = await dbHelper.updateRoutineEntry(routineEntry);
 
@@ -167,8 +151,8 @@ class WorkoutDao {
   }
 
   Future<List<RoutineEntry>?> routineEntryByRoutine(int id) async {
-    
-    List<RoutineEntry>? workouts = await dbHelper.queryRoutineEntriesByRoutine(id);
+    List<RoutineEntry>? workouts =
+        await dbHelper.queryRoutineEntriesByRoutine(id);
     if (workouts == null) {
       log('read row $id: empty');
       return null;
@@ -179,8 +163,8 @@ class WorkoutDao {
   }
 
   Future<List<RoutineEntry>?> routineEntryByWorkout(int id) async {
-    
-    List<RoutineEntry>? workouts = await dbHelper.queryRoutineEntriesByWorkout(id);
+    List<RoutineEntry>? workouts =
+        await dbHelper.queryRoutineEntriesByWorkout(id);
     if (workouts == null) {
       log('read row $id: empty');
       return null;
@@ -191,8 +175,8 @@ class WorkoutDao {
   }
 
   Future<List<Workout>?> workoutsByRoutine(int id) async {
-    
-    List<RoutineEntry>? entries = await dbHelper.queryRoutineEntriesByRoutine(id);
+    List<RoutineEntry>? entries =
+        await dbHelper.queryRoutineEntriesByRoutine(id);
     if (entries == null) {
       log('read row $id: empty');
       return null;
@@ -207,7 +191,6 @@ class WorkoutDao {
   }
 
   Future<List<Workout>?> readAllWorkoutsDropdown() async {
-    
     int rowId = 1;
     List<Workout>? workouts = await dbHelper.queryAllWorkouts();
     if (workouts == null) {
@@ -224,25 +207,25 @@ class WorkoutDao {
     }
   }
 
-  Future<List<Routine>?> readAllRoutinesDropdown() async {
-    
+  Future<List<Routine>> readAllRoutinesDropdown() async {
     int rowId = 1;
     List<Routine>? routines = await dbHelper.queryAllRoutines();
+    Routine add = Routine();
+    add.id = -1;
+    add.name = "All";
+    add.date = DateTime.now().toString();
     if (routines == null) {
       log('read row $rowId: empty');
-      return null;
+      return [add];
     } else {
-      Routine add = Routine();
-      add.id = -1;
-      add.name = "All";
-      add.date = DateTime.now().toString();
       routines.sort((a, b) => a.name.compareTo(b.name));
       routines.insert(0, add);
       return routines;
     }
   }
 
-  Future<WorkoutHistory> saveWorkoutHistory(WorkoutHistory workoutHistory) async {
+  Future<WorkoutHistory> saveWorkoutHistory(
+      WorkoutHistory workoutHistory) async {
     log(workoutHistory.workoutId.toString());
     int id = await dbHelper.insertWorkoutHistory(workoutHistory);
     workoutHistory.id = id;
@@ -253,8 +236,8 @@ class WorkoutDao {
 
   deleteWorkoutHistory(int _id) async {
     var sets = await readAllSets(_id);
-    if(sets.isNotEmpty){
-      for(var set in sets){
+    if (sets.isNotEmpty) {
+      for (var set in sets) {
         deleteSet(set.id);
       }
     }
@@ -263,8 +246,8 @@ class WorkoutDao {
     log('deleted row: $id');
   }
 
-  Future<WorkoutHistory> updateWorkoutHistory(WorkoutHistory workoutHistory) async {
-
+  Future<WorkoutHistory> updateWorkoutHistory(
+      WorkoutHistory workoutHistory) async {
     log('updating row: ${workoutHistory.id.toString()}');
     int id = await dbHelper.updateWorkoutHistory(workoutHistory);
     workoutHistory.id = id;
@@ -273,7 +256,6 @@ class WorkoutDao {
   }
 
   Future<List<WorkoutHistory>?> readAllWorkoutHistory() async {
-    
     int rowId = 1;
     List<WorkoutHistory>? workouts = await dbHelper.queryAllWorkoutHistory();
     if (workouts == null) {
@@ -288,9 +270,8 @@ class WorkoutDao {
   }
 
   Future<List<WorkoutHistory>?> workoutHistoryByWorkout(int id) async {
-    
     List<WorkoutHistory>? workouts =
-    await dbHelper.queryWorkoutHistoryByWorkout(id);
+        await dbHelper.queryWorkoutHistoryByWorkout(id);
     if (workouts == null) {
       log('read row $id: empty');
       return null;
@@ -303,9 +284,8 @@ class WorkoutDao {
   }
 
   Future<WorkoutHistory?> mostRecentWorkoutHistoryByWorkout(int id) async {
-    
     List<WorkoutHistory>? workouts =
-    await dbHelper.queryWorkoutHistoryByWorkout(id);
+        await dbHelper.queryWorkoutHistoryByWorkout(id);
     if (workouts == null) {
       log('read row $id: empty');
       return null;
@@ -320,9 +300,8 @@ class WorkoutDao {
 
   Future<List<WorkoutHistory>?> workoutHistoryByWorkoutAndDates(
       int id, DateTimeRange range) async {
-    
     List<WorkoutHistory>? workouts =
-    await dbHelper.queryWorkoutHistoryByWorkout(id);
+        await dbHelper.queryWorkoutHistoryByWorkout(id);
     if (workouts == null) {
       log('read row $id: empty');
       return null;
@@ -349,7 +328,6 @@ class WorkoutDao {
 
   Future<List<WorkoutHistory>?> workoutHistoryByDates(
       DateTimeRange range) async {
-    
     List<WorkoutHistory>? workouts = await dbHelper.queryAllWorkoutHistory();
     if (workouts == null) {
       return null;
@@ -373,7 +351,6 @@ class WorkoutDao {
 
   Future<List<WorkoutHistory>?> workoutHistoryByRoutineAndDates(
       int id, DateTimeRange range) async {
-    
     List<Workout>? workouts = await workoutsByRoutine(id);
 
     List<WorkoutHistory>? allWorkoutHistory = [];
@@ -384,7 +361,7 @@ class WorkoutDao {
     } else {
       for (var workout in workouts) {
         List<WorkoutHistory>? tempHistory =
-        await workoutHistoryByWorkoutAndDates(workout.id, range);
+            await workoutHistoryByWorkoutAndDates(workout.id, range);
         if (tempHistory != null) {
           allWorkoutHistory.addAll(tempHistory);
         }
@@ -415,9 +392,8 @@ class WorkoutDao {
 
   Future<List<WorkoutHistory>?> updateWorkoutHistoryByWorkout(
       int id, String workoutName) async {
-    
     List<WorkoutHistory>? workouts =
-    await dbHelper.queryWorkoutHistoryByWorkout(id);
+        await dbHelper.queryWorkoutHistoryByWorkout(id);
     if (workouts == null) {
       return null;
     } else {
@@ -433,9 +409,8 @@ class WorkoutDao {
 
   Future<List<RoutineEntry>?> updateRoutineEntryByWorkout(
       int id, int workoutType, String workoutName) async {
-    
     List<RoutineEntry>? entries =
-    await dbHelper.queryRoutineEntriesByWorkout(id);
+        await dbHelper.queryRoutineEntriesByWorkout(id);
     if (entries == null) {
       return null;
     } else {
@@ -451,7 +426,6 @@ class WorkoutDao {
   }
 
   saveWeight(Weight weight) async {
-
     int id = await dbHelper.insertWeight(weight);
     weight.id = id;
 
@@ -459,15 +433,12 @@ class WorkoutDao {
   }
 
   deleteWeight(int _id) async {
-
-
     int id = await dbHelper.deleteWeight(_id);
 
     log('deleted row: $id');
   }
 
   updateWeight(Weight weight) async {
-
     log('updating row: ${weight.id.toString()}');
     int id = await dbHelper.updateWeight(weight);
 
@@ -475,7 +446,6 @@ class WorkoutDao {
   }
 
   Future<List<Weight>?> readAllWeights() async {
-
     List<Weight>? weights = await dbHelper.queryAllWeights();
     if (weights == null) {
       log('read row empty');
@@ -486,9 +456,7 @@ class WorkoutDao {
     }
   }
 
-  Future<List<Weight>?> weightsByDates(
-      DateTimeRange range) async {
-
+  Future<List<Weight>?> weightsByDates(DateTimeRange range) async {
     List<Weight>? weights = await dbHelper.queryAllWeights();
     if (weights == null) {
       return null;
@@ -510,7 +478,6 @@ class WorkoutDao {
   }
 
   saveSet(WorkoutSet set) async {
-
     int id = await dbHelper.insertSet(set);
     set.id = id;
 
@@ -518,15 +485,12 @@ class WorkoutDao {
   }
 
   deleteSet(int _id) async {
-
-
     int id = await dbHelper.deleteSet(_id);
 
     log('deleted row: $id');
   }
 
   updateSet(WorkoutSet set) async {
-
     log('updating row: ${set.id.toString()}');
     int id = await dbHelper.updateSet(set);
 
@@ -534,7 +498,6 @@ class WorkoutDao {
   }
 
   Future<List<WorkoutSet>> readAllSets(int _id) async {
-
     List<WorkoutSet>? sets = await dbHelper.queryAllSetsByWorkoutHistory(_id);
     if (sets == null) {
       log('read row empty');

@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:hey_workout/ui/workout_profile_page.dart';
+import 'package:hey_workout/ui/workout_profile/workout_profile_page.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:unicons/unicons.dart';
 
@@ -65,7 +65,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       ),
                       onChanged: (value) async {
                         setState(() {
-                          workouts = repo.readAllWorkoutsByName(value.toLowerCase());
+                          workouts =
+                              repo.readAllWorkoutsByName(value.toLowerCase());
                         });
                       },
                     ),
@@ -127,7 +128,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
       int typeIndex, Workout workout) async {
     //default the name
     TextEditingController workoutController =
-    TextEditingController(text: workout.name);
+        TextEditingController(text: workout.name);
 
     //default a workout type
     int? typeIndexController = typeIndex;
@@ -160,18 +161,17 @@ class _WorkoutPageState extends State<WorkoutPage> {
 
                       //radio buttons to set workout type. Locked if updating
                       RadioListTile<int>(
-
                         value: WorkoutType.strength.index,
                         groupValue: typeIndexController,
                         title: const Text("Strength"),
                         onChanged: lock
                             ? null
                             : (value) {
-                          setNewState(() {
-                            typeIndexController =
-                                WorkoutType.strength.index;
-                          });
-                        },
+                                setNewState(() {
+                                  typeIndexController =
+                                      WorkoutType.strength.index;
+                                });
+                              },
                         activeColor: Colors.white,
                         toggleable: true,
                       ),
@@ -182,11 +182,11 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         onChanged: lock
                             ? null
                             : (value) {
-                          setNewState(() {
-                            typeIndexController =
-                                WorkoutType.cardio.index;
-                          });
-                        },
+                                setNewState(() {
+                                  typeIndexController =
+                                      WorkoutType.cardio.index;
+                                });
+                              },
                         activeColor: Colors.white,
                         toggleable: true,
                       ),
@@ -197,10 +197,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         onChanged: lock
                             ? null
                             : (value) {
-                          setNewState(() {
-                            typeIndexController = WorkoutType.both.index;
-                          });
-                        },
+                                setNewState(() {
+                                  typeIndexController = WorkoutType.both.index;
+                                });
+                              },
                         activeColor: Colors.white,
                         toggleable: true,
                       ),
@@ -228,12 +228,14 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         // dismiss keyboard during async call
                         FocusScope.of(context).requestFocus(new FocusNode());
 
-                        bool isDupe =
-                        await repo.workoutNameExists(workoutController.text);
+                        bool isDupe = await repo
+                            .workoutNameExists(workoutController.text);
 
                         //finish validation and exit async call
                         setNewState(() {
-                          if (isDupe && workoutController.text.toLowerCase() != workout.name.toLowerCase()) {
+                          if (isDupe &&
+                              workoutController.text.toLowerCase() !=
+                                  workout.name.toLowerCase()) {
                             isInvalidName = true;
                           } else {
                             isInvalidName = false;
@@ -247,8 +249,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
                             repo.updateWorkout(workout);
                             repo.updateWorkoutHistoryByWorkout(
                                 workout.id, workoutController.text);
-                            repo.updateRoutineEntryByWorkout(
-                                workout.id, workout.type, workoutController.text);
+                            repo.updateRoutineEntryByWorkout(workout.id,
+                                workout.type, workoutController.text);
                           } else {
                             repo.saveWorkout(workout);
                           }
@@ -282,7 +284,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
             child: ListBody(
               children: const <Widget>[
                 Text('This workout has history.'),
-                Text('Please delete all history and remove from all routines before deleting workouts.'),
+                Text(
+                    'Please delete all history and remove from all routines before deleting workouts.'),
               ],
             ),
           ),
@@ -315,7 +318,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                   onPressed: () async {
                     Navigator.of(context).pop();
                     List<WorkoutHistory>? workoutsForType =
-                    await repo.workoutHistoryByWorkout(workout.id);
+                        await repo.workoutHistoryByWorkout(workout.id);
                     if (workoutsForType == null) {
                       await addWorkoutForm(
                           context, false, false, workout.type, workout);
@@ -331,11 +334,12 @@ class _WorkoutPageState extends State<WorkoutPage> {
                   onPressed: () async {
                     Navigator.of(context).pop();
                     List<WorkoutHistory>? historyForWorkout =
-                    await repo.workoutHistoryByWorkout(workout.id);
+                        await repo.workoutHistoryByWorkout(workout.id);
 
                     List<RoutineEntry>? routineEntriesForWorkout =
-                    await repo.routineEntryByWorkout(workout.id);
-                    if (historyForWorkout == null && routineEntriesForWorkout == null) {
+                        await repo.routineEntryByWorkout(workout.id);
+                    if (historyForWorkout == null &&
+                        routineEntriesForWorkout == null) {
                       await repo.deleteWorkout(workout.id);
                     } else {
                       return cantDeleteAlert();
