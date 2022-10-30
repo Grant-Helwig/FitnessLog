@@ -1,7 +1,7 @@
 import 'package:hey_workout/repository/workout_repository.dart';
 import 'package:hey_workout/ui/execute_workout_page.dart';
 import 'package:hey_workout/ui/workout_graph_page.dart';
-import 'package:hey_workout/ui/workout_history_page.dart';
+import 'package:hey_workout/ui/workout_history/workout_history_page.dart';
 import 'package:unicons/unicons.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';

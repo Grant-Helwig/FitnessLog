@@ -1,84 +1,93 @@
 import 'dart:developer';
-
-import 'package:duration/duration.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:hey_workout/bloc/workout_bloc.dart';
-import 'package:hey_workout/bloc/workout_history_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hey_workout/repository/workout_repository.dart';
 import 'package:hey_workout/ui/execute_workout_page.dart';
 import 'package:hey_workout/ui/workout_profile_page.dart';
 import 'package:intl/intl.dart';
 import 'package:unicons/unicons.dart';
-import '../bloc/routine_bloc.dart';
-import '../model/routine.dart';
-import '../model/workout.dart';
-import '../model/workout_history.dart';
-import '../utils/utils.dart';
+import '../../model/routine.dart';
+import '../../model/workout.dart';
+import '../../model/workout_history.dart';
+import '../../utils/utils.dart';
 import 'dart:async';
 
-class WorkoutHistoryPage extends StatefulWidget {
+import 'bloc/workout_history_bloc.dart';
+
+class WorkoutHistoryPage extends StatelessWidget {
   final Workout? workout;
-  const WorkoutHistoryPage({Key? key, required this.workout,required this.refreshCallback, required this.initialDateRange}) : super(key: key);
+  const WorkoutHistoryPage(
+      {Key? key,
+      required this.workout,
+      required this.refreshCallback,
+      required this.initialDateRange})
+      : super(key: key);
   final Function(DateTimeRange result) refreshCallback;
   final DateTimeRange initialDateRange;
   @override
-  State<WorkoutHistoryPage> createState() =>
-      _WorkoutHistoryPageState(workout: this.workout, initialDateRange: this.initialDateRange);
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (BuildContext context) => WorkoutHistoryBloc()
+        ..add(WorkoutHistoryEvent.started(
+          initialDateRange,
+          workout,
+        )),
+      child: _WorkoutHistoryPageState(
+          workout: workout, initialDateRange: initialDateRange),
+    );
+  }
 }
 
-class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
+class _WorkoutHistoryPageState extends StatelessWidget {
   //used for when we are using the Workout History page from a Workout Profile
   late Workout? workout;
   late DateTimeRange initialDateRange;
   WorkoutRepository repo = WorkoutRepository();
 
-  _WorkoutHistoryPageState({required this.workout, required this.initialDateRange});
+  _WorkoutHistoryPageState(
+      {required this.workout, required this.initialDateRange});
 
   //Used for validating fields when adding workout history
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  //value for date range picker
-  late DateTimeRange? _selectedDateRange = initialDateRange;
+  // //value for date range picker
+  // late DateTimeRange? _selectedDateRange = initialDateRange;
 
-  //separate list is needed for filter
-  late Future<List<WorkoutHistory>?> _workoutHistory;
+  // //separate list is needed for filter
+  // late Future<List<WorkoutHistory>?> _workoutHistory;
 
-  //list of all saved workouts
-  late Future<List<Workout>?> _workouts;
+  // //list of all saved workouts
+  // late Future<List<Workout>?> _workouts;
 
-  //list for populating Routine Dropdown Filter
-  late Future<List<Routine>?> _routineDropdown;
-
-
+  // //list for populating Routine Dropdown Filter
+  // late Future<List<Routine>?> _routineDropdown;
 
   //index for position in their lists, useful with future builders
   int filterIndex = 0;
   int workoutIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _workoutHistory = repo.workoutHistoryByDates(initialDateRange);
-    _workouts = repo.readAllWorkouts();
-    _routineDropdown = repo.readAllRoutinesDropdown();
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _workoutHistory = repo.workoutHistoryByDates(initialDateRange);
+  //   _workouts = repo.readAllWorkouts();
+  //   _routineDropdown = repo.readAllRoutinesDropdown();
+  // }
 
   //function to update the workout index for the dropdown
-  Future<int> updateWorkoutIndex(newValue) async {
-    var workoutsList = await _workouts;
-    for (var i = 0; i < workoutsList!.length; i++) {
-      if (newValue == workoutsList[i].name) {
-        workoutIndex = i;
-        return i;
-      }
-    }
-    return -1;
-  }
+  // Future<int> updateWorkoutIndex(newValue) async {
+  //   var workoutsList = await _workouts;
+  //   for (var i = 0; i < workoutsList!.length; i++) {
+  //     if (newValue == workoutsList[i].name) {
+  //       workoutIndex = i;
+  //       return i;
+  //     }
+  //   }
+  //   return -1;
+  // }
 
   //open the Date Range Picker and save the results
-  void selectDates() async {
+  void selectDates(BuildContext context) async {
     DateTime now = DateTime.now();
     DateTime dateStart = DateTime(now.year - 5, now.month, now.day);
     DateTime dateEnd = DateTime(now.year, now.month, now.day);
@@ -87,136 +96,161 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
         firstDate: dateStart,
         lastDate: dateEnd,
         currentDate: now,
-        saveText: 'Done'
-    );
-    if (result != null) {
-      var dropdownList = await _routineDropdown;
-      setState(() {
-        _selectedDateRange = result;
-        widget.refreshCallback(result);
-        // -1 is the ID for all, so do not filter if that is the case
-        if (dropdownList![filterIndex].id == -1) {
-          _workoutHistory = repo.workoutHistoryByDates(result);
-        } else {
-          _workoutHistory = repo.workoutHistoryByRoutineAndDates(
-              dropdownList[filterIndex].id, result);
-        }
-      });
-    }
+        saveText: 'Done');
+    // if (result != null) {
+    //   var dropdownList = await _routineDropdown;
+    //   setState(() {
+    //     _selectedDateRange = result;
+    //     widget.refreshCallback(result);
+    //     // -1 is the ID for all, so do not filter if that is the case
+    //     if (dropdownList != null) {
+    //       if (dropdownList[filterIndex].id == -1) {
+    //         _workoutHistory = repo.workoutHistoryByDates(result);
+    //       } else {
+    //         _workoutHistory = repo.workoutHistoryByRoutineAndDates(
+    //             dropdownList[filterIndex].id, result);
+    //       }
+    //     }
+    //   });
+    // }
   }
 
   @override
   Widget build(BuildContext context) {
     //if you navigated from the profile, pre filter the history by the id and range
-    if (workout != null) {
-      _workoutHistory =
-          repo.workoutHistoryByWorkoutAndDates(workout!.id, _selectedDateRange!);
-    } else {
-      _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
-    }
+    // if (workout != null) {
+    //   _workoutHistory = repo.workoutHistoryByWorkoutAndDates(
+    //       workout!.id, _selectedDateRange!);
+    // } else {
+    //   _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
+    // }
 
-    //update the filtered list and the filtered index from the dropdown selection
-    void dropdownFilter(int routineId) async {
-      var routines = await _routineDropdown;
-      setState(() {
-        if (routineId == -1) {
-          _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
-        } else {
-          _workoutHistory =
-              repo.workoutHistoryByRoutineAndDates(routineId, _selectedDateRange!);
-        }
+    // //update the filtered list and the filtered index from the dropdown selection
+    // void dropdownFilter(int routineId) async {
+    //   var routines = await _routineDropdown;
+    // setState(() {
+    //   if (routineId == -1) {
+    //     _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
+    //   } else {
+    //     _workoutHistory = repo.workoutHistoryByRoutineAndDates(
+    //         routineId, _selectedDateRange!);
+    //   }
 
-        for (int i = 0; i < routines!.length; i++) {
-          if (routineId == routines[i].id) {
-            filterIndex = i;
-          }
-        }
-      });
-    }
+    //   for (int i = 0; i < routines!.length; i++) {
+    //     if (routineId == routines[i].id) {
+    //       filterIndex = i;
+    //     }
+    //   }
+    // });
+    //}
 
     //Dropdown Widget that updates the results
-    Widget dropdownWidget() {
-      return FutureBuilder<List<Routine>?>(
-        future: _routineDropdown,
-        builder: (context, projectSnap) {
-          if (projectSnap.hasData) {
-            return DropdownButton<String>(
-              isExpanded: true,
-              value: projectSnap.data![filterIndex].name,
-              icon: const Icon(UniconsLine.angle_down),
-              elevation: 16,
-              style: const TextStyle(color: Colors.white),
-              underline: Container(
-                height: 2,
-                color: Colors.white,
-              ),
-              onChanged: (String? newValue) => dropdownFilter(projectSnap.data!
-                  .firstWhere((element) => element.name == newValue)
-                  .id),
-              items: projectSnap.data!
-                  .map<DropdownMenuItem<String>>((Routine value) {
-                return DropdownMenuItem<String>(
-                  value: value.name,
-                  child: Text(value.name),
-                );
-              }).toList(),
-            );
-          } else {
-            log("empty dropdown");
-            // way to return an empty widget until the routine dropdown populates
-            return const SizedBox.shrink();
-          }
-        },
-      );
-    }
+    // Widget dropdownWidget() {
+    //   return FutureBuilder<List<Routine>?>(
+    //     future: _routineDropdown,
+    //     builder: (context, projectSnap) {
+    //       if (projectSnap.hasData) {
+    //         return DropdownButton<String>(
+    //           isExpanded: true,
+    //           value: projectSnap.data![filterIndex].name,
+    //           icon: const Icon(UniconsLine.angle_down),
+    //           elevation: 16,
+    //           style: const TextStyle(color: Colors.white),
+    //           underline: Container(
+    //             height: 2,
+    //             color: Colors.white,
+    //           ),
+    //           onChanged: (String? newValue) => dropdownFilter(projectSnap.data!
+    //               .firstWhere((element) => element.name == newValue)
+    //               .id),
+    //           items: projectSnap.data!
+    //               .map<DropdownMenuItem<String>>((Routine value) {
+    //             return DropdownMenuItem<String>(
+    //               value: value.name,
+    //               child: Text(value.name),
+    //             );
+    //           }).toList(),
+    //         );
+    //       } else {
+    //         log("empty dropdown");
+    //         // way to return an empty widget until the routine dropdown populates
+    //         return const SizedBox.shrink();
+    //       }
+    //     },
+    //   );
+    // }
 
     return Scaffold(
       drawer: const Drawer(),
-      body: Container(
-        child: Column(
-          children: [
-            //Date Range Button
-            TextButton(
-                onPressed: selectDates,
-                child: Text(
-                  "${DateFormat('yyyy/MM/dd').format(_selectedDateRange!.start)} - "
-                      "${DateFormat('yyyy/MM/dd').format(_selectedDateRange!.end)}",
-                  style: const TextStyle(color: Colors.grey, fontSize: 18),
-                )),
-            const Divider(),
+      body: BlocBuilder<WorkoutHistoryBloc, WorkoutHistoryState>(
+        builder: (context, state) {
+          return state.when(
+              initial: () => const CircularProgressIndicator(),
+              loaded: ((dateRange, routines, routine, workouts) {
+                return Column(
+                  children: [
+                    //Date Range Button
+                    TextButton(
+                        onPressed: () => selectDates(context),
+                        child: Text(
+                          "${DateFormat('yyyy/MM/dd').format(dateRange.start)} - "
+                          "${DateFormat('yyyy/MM/dd').format(dateRange.end)}",
+                          style:
+                              const TextStyle(color: Colors.grey, fontSize: 18),
+                        )),
+                    const Divider(),
 
-            //do not show the routine dropdown on the Workout Profile
-            if (workout == null) dropdownWidget(),
+                    //do not show the routine dropdown on the Workout Profile
+                    //if (workout == null) dropdownWidget(),
 
-            //build a list of workout history cards
-            Expanded(
-              child: FutureBuilder<List<dynamic>?>(
-                future: Future.wait([_workoutHistory]),
-                builder: (context, projectSnap) {
-                  if (projectSnap.hasData &&
-                      projectSnap.data![0] != null &&
-                      projectSnap.data![0].length > 0) {
-                    return ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 100),
-                        itemCount: projectSnap.data![0]?.length,
-                        itemBuilder: (BuildContext context, int index) =>
-                            buildWorkoutCard(
-                                context,
-                                projectSnap.data![0][index]));
-                  } else {
-                    return const Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        'No History',
-                        textAlign: TextAlign.center,
+                    //build a list of workout history cards
+                    if (workouts.isNotEmpty)
+                      Expanded(
+                        child: ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 100),
+                            itemCount: workouts.length,
+                            itemBuilder: (BuildContext context, int index) =>
+                                buildWorkoutCard(context, workouts[index])),
+                      )
+                    else
+                      const Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          'No History',
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    );
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
+
+                    // Expanded(
+                    //   child: FutureBuilder<List<dynamic>?>(
+                    //     future: Future.wait([workouts]),
+                    //     builder: (context, projectSnap) {
+                    //       if (projectSnap.hasData &&
+                    //           projectSnap.data![0] != null &&
+                    //           projectSnap.data![0].length > 0) {
+                    //         return ListView.builder(
+                    //             padding: const EdgeInsets.only(bottom: 100),
+                    //             itemCount: projectSnap.data![0]?.length,
+                    //             itemBuilder: (BuildContext context,
+                    //                     int index) =>
+                    //                 buildWorkoutCard(
+                    //                     context, projectSnap.data![0][index]));
+                    //       } else {
+                    //         return const Align(
+                    //           alignment: Alignment.center,
+                    //           child: Text(
+                    //             'No History',
+                    //             textAlign: TextAlign.center,
+                    //           ),
+                    //         );
+                    //       }
+                    //     },
+                    //   ),
+                    // ),
+                  ],
+                );
+              }));
+        },
       ),
       // floatingActionButton: FloatingActionButton(
       //   onPressed: () async {
@@ -278,7 +312,8 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
   }
 
   //update and delete are both on long press
-  Future<void> updateOptions(WorkoutHistory workoutHistory) {
+  Future<void> updateOptions(
+      WorkoutHistory workoutHistory, BuildContext context) {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -293,15 +328,18 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                   onPressed: () async {
                     Navigator.of(context).pop();
                     //await addWorkoutHistoryForm(context, false, workoutHistory, true);
-                    var workout = await repo.readWorkout(workoutHistory.workoutId);
+                    var workout =
+                        await repo.readWorkout(workoutHistory.workoutId);
                     await Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) =>
-                                ExecuteWorkout(workouts: [workout!], history: workoutHistory)));
-                    setState(() {
-                      _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
-                    });
+                            builder: (context) => ExecuteWorkout(
+                                workouts: [workout!],
+                                history: workoutHistory)));
+                    // setState(() {
+                    //   _workoutHistory =
+                    //       repo.workoutHistoryByDates(_selectedDateRange!);
+                    // });
                   },
                 ),
                 const Divider(),
@@ -310,9 +348,10 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                   onPressed: () async {
                     Navigator.of(context).pop();
                     await repo.deleteWorkoutHistory(workoutHistory.id);
-                    setState(() {
-                      _workoutHistory = repo.workoutHistoryByDates(_selectedDateRange!);
-                    });
+                    // setState(() {
+                    //   _workoutHistory =
+                    //       repo.workoutHistoryByDates(_selectedDateRange!);
+                    // });
                   },
                 ),
                 const Divider(),
@@ -332,7 +371,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
   }
 
-  Future<void> noWorkoutsAlert() {
+  Future<void> noWorkoutsAlert(BuildContext context) {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -927,8 +966,9 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
         child: ListTile(
           onTap: () async {
             //await addWorkoutHistoryForm(context, false, workoutHistory, true);
-            if(workout == null){
-              Workout? tempWorkout = await repo.readWorkout(workoutHistory.workoutId);
+            if (workout == null) {
+              Workout? tempWorkout =
+                  await repo.readWorkout(workoutHistory.workoutId);
               Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -937,7 +977,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
             }
           },
           onLongPress: () async {
-            await updateOptions(workoutHistory);
+            await updateOptions(workoutHistory, context);
           },
           title: Column(
             children: [
@@ -955,49 +995,54 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
                   ],
                 ),
               ),
-              const Divider(color: Colors.white54,),
-              Container(
-                padding: const EdgeInsets.only(left: 8, right: 8),
-                child: workoutHistory.sets.isNotEmpty
-                    ? ListView.builder(
-                    primary: false,
-                    shrinkWrap: true,
-                    itemCount: workoutHistory.sets.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return AspectRatio(
-                        aspectRatio: MediaQuery.of(context).size.width /
-                            (MediaQuery.of(context).size.height / 24),
-                        child: Row(
-                          children: [
-                            Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].weight) ?? "No"} LBS'),
-                            const Spacer(),
-                            Text('${Utils().getWorkoutHistoryString(workoutHistory.sets[index].reps) ?? "No"} Reps'),
-                          ],
-                        ),
-                      );
-                    }
-                )
-                    : SizedBox.shrink()
+              const Divider(
+                color: Colors.white54,
               ),
+              Container(
+                  padding: const EdgeInsets.only(left: 8, right: 8),
+                  child: workoutHistory.sets.isNotEmpty
+                      ? ListView.builder(
+                          primary: false,
+                          shrinkWrap: true,
+                          itemCount: workoutHistory.sets.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return AspectRatio(
+                              aspectRatio: MediaQuery.of(context).size.width /
+                                  (MediaQuery.of(context).size.height / 24),
+                              child: Row(
+                                children: [
+                                  Text(
+                                      '${Utils().getWorkoutHistoryString(workoutHistory.sets[index].weight) ?? "No"} LBS'),
+                                  const Spacer(),
+                                  Text(
+                                      '${Utils().getWorkoutHistoryString(workoutHistory.sets[index].reps) ?? "No"} Reps'),
+                                ],
+                              ),
+                            );
+                          })
+                      : SizedBox.shrink()),
               workoutHistory.sets.isNotEmpty
-                  ? const Divider(color: Colors.white54,) : SizedBox.shrink(),
+                  ? const Divider(
+                      color: Colors.white54,
+                    )
+                  : SizedBox.shrink(),
               workoutItems.isNotEmpty
                   ? Padding(
-                  padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    primary: false,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      childAspectRatio: MediaQuery.of(context).size.width /
-                          (MediaQuery.of(context).size.height / 12),
-                      crossAxisCount: 2,
-                    ),
-                    itemCount: workoutItems.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return workoutItems[index];
-                    },
-                  )
-              ) : SizedBox.shrink(),
+                      padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        primary: false,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          childAspectRatio: MediaQuery.of(context).size.width /
+                              (MediaQuery.of(context).size.height / 12),
+                          crossAxisCount: 2,
+                        ),
+                        itemCount: workoutItems.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return workoutItems[index];
+                        },
+                      ))
+                  : SizedBox.shrink(),
             ],
           ),
         ),
@@ -1005,29 +1050,46 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
     );
   }
 
-  List<Widget> displayList(WorkoutHistory workoutHistory){
+  List<Widget> displayList(WorkoutHistory workoutHistory) {
     List<Widget> historyList = [];
     var heartRate = Utils().getWorkoutHistoryString(workoutHistory.heartRate);
     var calories = Utils().getWorkoutHistoryString(workoutHistory.calories);
     var distance = Utils().getWorkoutHistoryString(workoutHistory.distance);
     log(workoutHistory.duration);
-    var duration = workoutHistory.duration == "00:00:00.00" ? null :  workoutHistory.duration;
+    var duration = workoutHistory.duration == "00:00:00.00"
+        ? null
+        : workoutHistory.duration;
 
-
-    if(heartRate != null){
-      historyList.add(Text('$heartRate BPM', textAlign: historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,));
+    if (heartRate != null) {
+      historyList.add(Text(
+        '$heartRate BPM',
+        textAlign:
+            historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,
+      ));
     }
 
-    if(calories != null){
-      historyList.add(Text('$calories Calories', textAlign: historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,));
+    if (calories != null) {
+      historyList.add(Text(
+        '$calories Calories',
+        textAlign:
+            historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,
+      ));
     }
 
-    if(distance != null){
-      historyList.add(Text('$distance Mi', textAlign: historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,));
+    if (distance != null) {
+      historyList.add(Text(
+        '$distance Mi',
+        textAlign:
+            historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,
+      ));
     }
 
-    if(duration != null){
-      historyList.add(Text('Duration: $duration', textAlign: historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,));
+    if (duration != null) {
+      historyList.add(Text(
+        'Duration: $duration',
+        textAlign:
+            historyList.length % 2 == 0 ? TextAlign.left : TextAlign.right,
+      ));
     }
 
     return historyList;

@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:hey_workout/ui/routine_page.dart';
 import 'package:hey_workout/ui/weight_profile_page.dart';
-import 'package:hey_workout/ui/workout_history_page.dart';
+import 'package:hey_workout/ui/workout_history/workout_history_page.dart';
 import 'package:hey_workout/ui/workout_page.dart';
 import 'package:unicons/unicons.dart';
 
