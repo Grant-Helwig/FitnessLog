@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hey_workout/repository/workout_repository.dart';
 import 'package:hey_workout/ui/execute_workout_page.dart';
-import 'package:hey_workout/ui/workout_profile_page.dart';
+import 'package:hey_workout/ui/workout_profile/workout_profile_page.dart';
 import 'package:intl/intl.dart';
 import 'package:unicons/unicons.dart';
 import '../../model/routine.dart';

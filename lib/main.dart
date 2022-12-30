@@ -1,12 +1,12 @@
 //import 'package:duration_picker_dialog_box/duration_picker_dialog_box.dart';
 import 'package:duration/duration.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_picker/flutter_picker.dart';
 import 'package:hey_workout/ui/home_page.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:unicons/unicons.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:developer';
 import 'database_helper.dart';
