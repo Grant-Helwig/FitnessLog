@@ -165,6 +165,7 @@ class _WorkoutHistoryPageState extends StatelessWidget {
                             builder: (context) => ExecuteWorkout(
                                 workouts: [workout!],
                                 history: workoutHistory)));
+
                     // setState(() {
                     //   _workoutHistory =
                     //       repo.workoutHistoryByDates(_selectedDateRange!);
